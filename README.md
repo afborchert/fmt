@@ -112,8 +112,8 @@ a few:
 
  * In 1994, Cay S. Horstmann
    [published an article](http://horstmann.com/cpp/iostreams.html)
-   about extending the iostream library in C++ Report where he
-   proposed `setformat` which takes one format specification
+   about extending the iostreams library in _C++ Report_ where he
+   proposed _setformat_ which takes one format specification
    and configures the stream accordingly like other manipulators.
    Example from his paper:
 
@@ -128,8 +128,16 @@ a few:
 
 	std::cout << boost::format("(x, y) = (%4f, %4f)\n" % x % y;
 
- * There is a [proposal by Zhihao Yuan](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3506.html)
-   for a printf-like interface for the C++ streams library that is
-   [likewise available at Github](https://github.com/lichray/formatxx)
+ * Zhihao Yuan [proposed a C++ standard extension](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3506.html)
+   providing a printf-like interface for the C++ streams library that is
+   [likewise available at Github](https://github.com/lichray/formatxx).
+   Example:
 
 	std::cout << std::putf("(x, y) = (%4f, %4f)\n", x, y);
+
+ * [C++ Format](http://cppformat.github.io/latest/index.html)
+   by Victor Zverovich provides a library which is no longer
+   header-only with two APIs, one of them offering format strings
+   as in Python. Example:
+
+	fmt::print("I'd rather be {1} than {0}.", "right", "happy");
