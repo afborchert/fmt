@@ -181,6 +181,18 @@ void errno_mismatch(bool implementation_defined,
       err1, err2);
 }
 
+void offset_mismatch(const char* format, int off1, int off2) {
+   print("test for \"%s\" fails,", format);
+   print(" fmt sets offset to %d, std sets offset to %d\n",
+      off1, off2);
+}
+
+void offset_mismatch(const wchar_t* format, int off1, int off2) {
+   print(L"test for \"%s\" fails,", format);
+   print(L" fmt sets offset to %d, std sets offset to %d\n",
+      off1, off2);
+}
+
 void print_values(int index) {
 }
 
@@ -224,14 +236,18 @@ bool check_hexfloat() {
 
 template<typename CharT, typename... Values>
 bool general_testcase(bool implementation_defined,
+      bool with_offset, int& offset,
       const CharT* format, Values&&... values) {
    ++testcases;
    std::basic_ostringstream<CharT> os;
    errno = 0;
+   int off1 = 0; int off2 = 0;
    int count1 = fmt::printf(os, format, std::forward<Values>(values)...);
+   if (with_offset) off1 = offset;
    int err1 = errno;
    errno = 0;
    int count2 = sprint(nullptr, 0, format, std::forward<Values>(values)...); 
+   if (with_offset) off2 = offset;
    int err2 = errno;
    if (count1 < 0 || count2 < 0) {
       if (count1 != count2) {
@@ -258,24 +274,40 @@ bool general_testcase(bool implementation_defined,
    if (!ok) {
       diff_analysis(implementation_defined, format, count1, count2,
 	 osstr.c_str(), buf);
-      print_values(1, values...);
       if (implementation_defined) ++warnings;
    }
    delete buf;
+   if (with_offset && off1 != off2) {
+      offset_mismatch(format, off1, off2);
+      ok = false;
+   }
+   if (!ok) print_values(1, values...);
    if (ok) ++successful;
    return ok;
 }
 
 template<typename CharT, typename... Values>
 bool testcase(const CharT* format, Values&&... values) {
+   int offset = 0;
    return general_testcase(/* implementation defined = */ false,
+      /* with offset = */ false, /* unused */ offset,
       format, std::forward<Values>(values)...);
 }
 
 template<typename CharT, typename... Values>
 bool implementation_dependent_testcase(const CharT* format,
       Values&&... values) {
+   int offset = 0;
    return general_testcase(/* implementation defined = */ true,
+      /* with offset = */ false, /* unused */ offset,
+      format, std::forward<Values>(values)...);
+}
+
+template<typename CharT, typename... Values>
+bool testcase_with_offset(int& offset,
+      const CharT* format, Values&&... values) {
+   return general_testcase(/* implementation defined = */ false,
+      /* with offset = */ true, offset,
       format, std::forward<Values>(values)...);
 }
 
@@ -597,7 +629,7 @@ void run_tests() {
    if (!uppercase_inf_works) {
       ++broken;
    }
-   float f_values[] = {0, -1, 42, 1234.5678f, 1.25E-10f, 3E+10f,
+   float f_values[] = {0, -0.0f, -1, 42, 1234.5678f, 1.25E-10f, 3E+10f,
       std::numeric_limits<float>::min() / 2,
       std::numeric_limits<float>::max() * 2,
       std::numeric_limits<float>::min(),
@@ -711,7 +743,7 @@ void run_tests() {
       testcase("% -8.4f", val);
    }
 
-   double d_values[] = {1234.5678, 1.25E-10, 3E+10,
+   double d_values[] = {-0.0, 1234.5678, 1.25E-10, 3E+10,
       std::numeric_limits<double>::min() / 2,
       std::numeric_limits<double>::max() * 2,
       std::numeric_limits<double>::min(),
@@ -780,7 +812,7 @@ void run_tests() {
       testcase("% 12lg", val);
    }
 
-   long double ld_values[] = {1234.5678L, 1.25E-10L, 3E+10L,
+   long double ld_values[] = {-0.0L, 1234.5678L, 1.25E-10L, 3E+10L,
       1.23456789e+1500L,
       std::numeric_limits<long double>::min() / 2,
       std::numeric_limits<long double>::max() * 2,
@@ -891,6 +923,13 @@ void run_tests() {
    for (int precision = 0; precision < 15; ++precision) {
       testcase("%20.*lg", precision, std::numeric_limits<double>::max());
    }
+
+   /* test %n */
+   int offset;
+   testcase_with_offset(offset, "%n", &offset);
+   testcase_with_offset(offset, "Hi!%n", &offset);
+   testcase_with_offset(offset, "Hello,%n world!", &offset);
+   testcase_with_offset(offset, "%s%n%s", "Hello, ", &offset, "world");
 
    /* tests of POSIX features */
    testcase("%1$s", "Hello world");

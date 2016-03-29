@@ -55,14 +55,14 @@
    "%lf", or "%Lf" as format. And all operands are supported
    for which an <<-operator exists.
 
-   fmt::printf uses C++ I/O manipulators but makes sure
+   fmt::printf uses C++ I/O format flags but makes sure
    that the previous state of manipulators and flags of
    the output stream is restored to its original state
    after its invocation. Any previous state is ignored,
    i.e. fmt::printf("%x", val) will print val in hex
-   even if std::cout << std::oct has been used before
-   but the octal conversion preference will stay in effect
-   for <<-operators after the invocation of fmt::printf.
+   even if std::cout << std::oct has been used before,
+   and the previous octal conversion preference will stay
+   in effect for <<-operators after the invocation of fmt::printf.
 
    Please note that the output format of %p is not
    standardized. As the <<-operator for void* may
@@ -74,10 +74,12 @@
    format string must match that of the stream.
 
    Restrictions:
-      - '%n' is not supported
-      - the combination of hexfloat with a precision (e.g. "%.2a") 
+      - The combination of hexfloat with a precision (e.g. "%.2a") 
         is not supported by C++11 (see 22.4.2.2.2 in ISO 14882:2011)
 	but supported by std::printf (see 7.21.6.1 in ISO 9899:2011).
+	As this implementation depends on the C++11 library, it
+	appears hard to find a reasonable workaround for this
+	diverting behaviour.
 
    Alternatives:
 
@@ -111,9 +113,6 @@
 
       See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3506.html
       and https://github.com/lichray/formatxx
-
-      (Note that his implementation supports POSIX-style
-      positional placeholders using C++14 techniques.)
 
     - http://codereview.stackexchange.com/questions/63578/printf-like-formatting-for-stdostream-not-exactly-boostformat
 */
@@ -596,6 +595,9 @@ parse_format_segment(const CharT* format, integer arg_index) {
 	    more readable results; idea taken from N3506 */
 	 result.fmtflags |= std::ios_base::boolalpha;
 	 break;
+      case 'n':
+	 /* nothing to be done here */
+	 break;
       default:
 	 return result;
    }
@@ -678,6 +680,32 @@ inline integer get_value(const Tuple& tuple, integer index) {
    if (index >= 0 &&
 	 index < static_cast<integer>(std::tuple_size<Tuple>::value)) {
       return apply(tuple, index, get_value_f());
+   } else {
+      return -1;
+   }
+}
+
+/* set offset value in case of %n */
+struct set_value_f {
+   set_value_f(std::streamsize offset) : offset(offset) {
+   }
+   integer operator()(int* ptr) {
+      *ptr = static_cast<int>(offset);
+      return 0;
+   }
+   template<typename Value>
+   integer operator()(Value ptr) {
+      return -1;
+   }
+   std::streamsize offset;
+};
+
+template<typename Tuple>
+inline integer set_value(const Tuple& tuple, integer index,
+      std::streamsize offset) {
+   if (index >= 0 &&
+	 index < static_cast<integer>(std::tuple_size<Tuple>::value)) {
+      return apply(tuple, index, set_value_f(offset));
    } else {
       return -1;
    }
@@ -1032,6 +1060,19 @@ inline bool process_value(const Tuple& tuple, integer index,
    }
 }
 
+template<typename Value>
+inline std::enable_if<std::is_integral<Value>::value &&
+   !std::is_const<Value>::value, bool>
+set_value(Value* ptr, std::streamsize value) {
+   *ptr = value;
+   return true;
+}
+
+template<typename Value>
+inline bool set_value(Value ptr, std::streamsize value) {
+   return false;
+}
+
 } // namespace impl
 
 template<typename CharT, typename Traits, typename... Values>
@@ -1066,30 +1107,37 @@ inline int printf(std::basic_ostream<CharT, Traits>& out,
 	 if (!cout) return -1;
       }
       if (fseg.value_index >= 0) {
-	 if (fseg.width_index >= 0) {
-	    fseg.width = impl::get_value(tuple, fseg.width_index);
-	 }
-	 if (fseg.precision_index >= 0) {
-	    fseg.precision = impl::get_value(tuple, fseg.precision_index);
-	 }
-	 impl::format_saver<CharT, Traits> fsaver(cout);
-	 cout.setf(fseg.fmtflags);
-	 cout.setf(fseg.base == 8? std::ios_base::oct  :
-	           fseg.base == 10? std::ios_base::dec :
-		   fseg.base == 16? std::ios_base::hex :
-	           std::ios_base::fmtflags(0), std::ios_base::basefield);
-	 if (fseg.width > 0) {
-	    cout.width(fseg.width);
-	 }
-	 if ((fseg.flags & impl::precision) && fseg.precision >= 0) {
-	    cout.precision(fseg.precision);
-	 }
-	 if (fseg.flags & impl::grouping_flag) {
-	    cout.imbue(std::locale(cout.getloc(),
-	       new impl::thousands_grouping()));
-	 }
-	 if (!process_value(tuple, fseg.value_index, cout, fseg)) {
-	    return -1;
+	 if (fseg.conversion == 'n') {
+	    if (impl::set_value(tuple, fseg.value_index,
+		  cout.get_count()) < 0) {
+	       return -1;
+	    }
+	 } else {
+	    if (fseg.width_index >= 0) {
+	       fseg.width = impl::get_value(tuple, fseg.width_index);
+	    }
+	    if (fseg.precision_index >= 0) {
+	       fseg.precision = impl::get_value(tuple, fseg.precision_index);
+	    }
+	    impl::format_saver<CharT, Traits> fsaver(cout);
+	    cout.setf(fseg.fmtflags);
+	    cout.setf(fseg.base == 8? std::ios_base::oct  :
+		      fseg.base == 10? std::ios_base::dec :
+		      fseg.base == 16? std::ios_base::hex :
+		      std::ios_base::fmtflags(0), std::ios_base::basefield);
+	    if (fseg.width > 0) {
+	       cout.width(fseg.width);
+	    }
+	    if ((fseg.flags & impl::precision) && fseg.precision >= 0) {
+	       cout.precision(fseg.precision);
+	    }
+	    if (fseg.flags & impl::grouping_flag) {
+	       cout.imbue(std::locale(cout.getloc(),
+		  new impl::thousands_grouping()));
+	    }
+	    if (!process_value(tuple, fseg.value_index, cout, fseg)) {
+	       return -1;
+	    }
 	 }
       }
       format = fseg.nextp;
