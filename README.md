@@ -27,7 +27,7 @@ count = fmt::snprintf(buf, sizeof buf, "%d\n", val);
 count = fmt::printf(L"%d\n", val); // goes to std::wcout
 ```
 
-where out is an ostream, not a `FILE*`. As `fmt::printf` is
+where out is an ostream, not a `FILE*`. As fmt::printf is
 based on variadic template constructs of C++11, this
 is possible in a typesafe way. Consequently, it no
 longer matters for fmt::printf whether you use `"%f"`,
@@ -95,13 +95,13 @@ the [https://opensource.org/licenses/MIT](MIT License).
 
 ## Files
 
-To use `fmt::printf`, you will need just to drop
+To use fmt::printf, you will need just to drop
 [printf.hpp](https://github.com/afborchert/fmt/blob/master/printf.hpp)
 within your project and `#include` it.
 
 The source file `test_suite.cpp` is a test suite
-testing `fmt::printf` against `std::printf` and
-the `Makefile` helps to compile it.
+testing fmt::printf against std::printf and
+the Makefile helps to compile it.
 
 ## Alternatives
 
@@ -117,10 +117,8 @@ a few:
    and configures the stream accordingly like other manipulators.
    Example from his paper:
 
-```C++
-      cout << "(" << setformat("%8.2f") << x << "," 
-		<< setformat("8.2f") << y << ")" << endl;
-```C++
+	cout << "(" << setformat("%8.2f") << x << ","
+	    << setformat("8.2f") << y << ")" << endl;
 
  * The [Boost Format library has created an
    approach](http://www.boost.org/doc/libs/1_59_0/libs/format/doc/format.html)
@@ -128,14 +126,10 @@ a few:
    As the %-operator is used, it does not depend on
    variadic templates. Example:
 
-```C++
-      std::cout << boost::format("(x, y) = (%4f, %4f)\n" % x % y;
-```
+	std::cout << boost::format("(x, y) = (%4f, %4f)\n" % x % y;
 
  * There is a [proposal by Zhihao Yuan](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3506.html)
    for a printf-like interface for the C++ streams library that is
    [likewise available at Github](https://github.com/lichray/formatxx)
 
-```C++
-      std::cout << std::putf("(x, y) = (%4f, %4f)\n", x, y);
-```
+	std::cout << std::putf("(x, y) = (%4f, %4f)\n", x, y);
