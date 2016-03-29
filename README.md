@@ -1,2 +1,141 @@
 # fmt
 fmt::printf as extensible C++ replacement for std::printf
+
+## Summary
+
+This header-only C++11 package provides fmt::printf which
+is intended as a type-safe and extensible drop-in replacement
+for std::printf. The principal idea is to replace
+
+```C++
+#include <cstdio>
+// ...
+int count = std::printf("%d\n", val);
+count = std::fprintf(stderr, "%s\n", errmsg);
+count = std::snprintf(buf, sizeof buf, "%d", val);
+count = std::wprintf(L"%d\n", val);
+```
+
+by
+
+```C++
+#include "printf.hpp"
+// ...
+int count = fmt::printf("%d\n", val);
+count = fmt::printf(std::cerr, "%s\n", errmsg);
+count = fmt::snprintf(buf, sizeof buf, "%d\n", val);
+count = fmt::printf(L"%d\n", val); // goes to std::wcout
+```
+
+where out is an ostream, not a `FILE*`. As `fmt::printf` is
+based on variadic template constructs of C++11, this
+is possible in a typesafe way. Consequently, it no
+longer matters for fmt::printf whether you use `"%f"`,
+`"%lf"`, or `"%Lf"` as format. All operands are supported
+for which an <<-operator exists. Example for std::complex:
+
+```C++
+std::complex c = /* ... */;
+fmt::printf("c = %20.4g\n", c);
+```
+
+fmt::printf uses C++ I/O format flags but makes sure
+that the previous state of the output stream is restored
+to its original state after its invocation. Any previous
+state is ignored, i.e. fmt::printf("%x", val) will
+print val in hex even if std::cout << std::oct has been
+used before, and the previous octal conversion preference will stay
+in effect for <<-operators after the invocation of fmt::printf.
+
+This implementation aims to support faithfully all
+features of std::printf according to ISO 9899:2011
+and IEEE Std 1003.1, 2013 (POSIX). Another important
+points were to keep it small and header-only.
+These goals have been more important than performance.
+
+This implementation is based on the C++ standard
+library and its existing conversions. Some work has
+been spent to work around incompatibilities between
+C und C++ in regard to formatted printing. There
+exists, however, one known exception where fmt::printf
+diverts from standard behaviour of std::printf. The problem
+is the combination of `"%a"` with a precision, e.g. `"%.2a"`.
+This odd combination is not supported by C++11 (see 22.4.2.2.2
+in ISO 14882:2011) but supported by std::printf (see 7.21.6.1
+in ISO 9899:2011). But it may be questioned how common
+or useful it is to combine this.
+
+In particular, fmt::printf supports
+
+* the return value, i.e. the number of bytes written,
+* the precision is honored by %s and integer conversions
+  (in contrast to std::setprecision which is honored
+  by floating point conversions only)
+* conversions that take the n-th argument, e.g.
+  `print("%2$s, %1$s\n", "world", "Hello");`, and
+* `%n` conversions that take an int* where the
+  number of bytes written so far is stored.
+
+Note that fmt::printf, much like std::printf, is
+locale-dependent. But std::printf is based on the
+global C locale whereas the behaviour of fmt::printf
+depends on the locale of the output stream. One
+notable exception is grouping. This is supported
+by the C++ locale system but not by C. Instead
+std::printf provides the apostrophe format flag
+that asks for a grouping with thousands. To
+conform to std::printf behaviour, the grouping
+by fmt::printf depends solely on the use of the
+apostrophe flag, not on the locale.
+
+## License
+
+This package is available under the terms of
+the [https://opensource.org/licenses/MIT](MIT License).
+
+## Files
+
+To use `fmt::printf`, you will need just to drop
+[printf.hpp](https://github.com/afborchert/fmt/blob/master/printf.hpp)
+within your project and `#include` it.
+
+The source file `test_suite.cpp` is a test suite
+testing `fmt::printf` against `std::printf` and
+the `Makefile` helps to compile it.
+
+## Alternatives
+
+This is not the first attempt to provide printf look
+and feel in a type-safe way for C++. There exist
+numerous other implementations. I want to name
+a few:
+
+ * In 1994, Cay S. Horstmann
+   [published an article](http://horstmann.com/cpp/iostreams.html)
+   about extending the iostream library in C++ Report where he
+   proposed `setformat` which takes one format specification
+   and configures the stream accordingly like other manipulators.
+   Example from his paper:
+
+```C++
+      cout << "(" << setformat("%8.2f") << x << "," 
+		<< setformat("8.2f") << y << ")" << endl;
+```C++
+
+ * The [Boost Format library has created an
+   approach](http://www.boost.org/doc/libs/1_59_0/libs/format/doc/format.html)
+   that permits the grouping of multiple conversions.
+   As the %-operator is used, it does not depend on
+   variadic templates. Example:
+
+```C++
+      std::cout << boost::format("(x, y) = (%4f, %4f)\n" % x % y;
+```
+
+ * There is a [proposal by Zhihao Yuan](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3506.html)
+   for a printf-like interface for the C++ streams library that is
+   [likewise available at Github](https://github.com/lichray/formatxx)
+
+```C++
+      std::cout << std::putf("(x, y) = (%4f, %4f)\n", x, y);
+```
