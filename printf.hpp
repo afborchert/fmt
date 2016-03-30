@@ -1091,7 +1091,9 @@ template<typename CharT, typename Traits, typename... Values>
 inline int printf(std::basic_ostream<CharT, Traits>& out,
       const CharT* format, Values&&... values) {
    impl::counting_ostream<CharT, Traits> cout(out);
-   cout.imbue(std::locale(cout.getloc(), new impl::suppress_grouping()));
+   if (cout.getloc() != std::locale::classic()) {
+      cout.imbue(std::locale(cout.getloc(), new impl::suppress_grouping()));
+   }
    std::tuple<Values&...> tuple(values...);
    impl::integer nof_args = 0;
    while (format) {
