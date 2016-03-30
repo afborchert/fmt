@@ -120,7 +120,7 @@ a few:
 	cout << "(" << setformat("%8.2f") << x << ","
 	    << setformat("8.2f") << y << ")" << endl;
 
- * The [Boost Format library has created an
+ * The [Boost Format library offers an
    approach](http://www.boost.org/doc/libs/1_59_0/libs/format/doc/format.html)
    that permits the grouping of multiple conversions.
    As the %-operator is used, it does not depend on
