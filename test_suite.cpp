@@ -212,7 +212,7 @@ bool check_printf(const CharT* expected, const CharT* format,
 	    "std::printf deviates from standard for \"%s\": \"%.*s\"\n",
 	    format, count, buf);
       }
-      delete buf;
+      delete[] buf;
    } else if (!ok) {
       fmt::printf("std::printf from standard for \"%s\"\n", format);
    }
@@ -272,7 +272,7 @@ bool general_testcase(bool implementation_defined,
 	 osstr.c_str(), buf);
       if (implementation_defined) ++warnings;
    }
-   delete buf;
+   delete[] buf;
    if (with_offset && off1 != off2) {
       offset_mismatch(format, off1, off2);
       ok = false;
