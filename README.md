@@ -27,11 +27,16 @@ count = fmt::snprintf(buf, sizeof buf, "%d\n", val);
 count = fmt::printf(L"%d\n", val); // goes to std::wcout
 ```
 
-where out is an ostream, not a `FILE*`. As fmt::printf is
-based on variadic template constructs of C++11, this
-is possible in a typesafe way. Consequently, it no
-longer matters for fmt::printf whether you use `"%f"`,
-`"%lf"`, or `"%Lf"` as format. All operands are supported
+where the behaviour is expected to be identical with the exception that
+fmt::printf prints to extensions of basic_ostream instead of `FILE*`
+and that the locale of the output stream is used instead of the global
+C locale.
+
+Thanks to the variadic templates of C++11, fmt::printf provides the
+functionality of std::printf in a typesafe way.  Consequently, it no
+longer matters for fmt::printf whether you use `"%f"`, `"%lf"`, or
+`"%Lf"` as format as the associated operand type is well known.
+fmt::printf is extensible as all operand types are supported
 for which an <<-operator exists. Example for std::complex:
 
 ```C++
@@ -39,19 +44,17 @@ std::complex c = /* ... */;
 fmt::printf("c = %20.4g\n", c);
 ```
 
-fmt::printf uses C++ I/O format flags but makes sure
-that the previous state of the output stream is restored
-to its original state after its invocation. Any previous
-state is ignored, i.e. fmt::printf("%x", val) will
-print val in hex even if std::cout << std::oct has been
-used before, and the previous octal conversion preference will stay
-in effect for <<-operators after the invocation of fmt::printf.
+fmt::printf uses C++ I/O format flags but makes sure that the previous
+state of the output stream is restored to its original state after its
+invocation. Any previous state is ignored, i.e. fmt::printf("%x", val)
+will print val in hex even if std::cout << std::oct has been used
+before, and the previous octal conversion preference will stay in
+effect for <<-operators after the invocation of fmt::printf.
 
-This implementation aims to support faithfully all
-features of std::printf according to ISO 9899:2011
-and IEEE Std 1003.1, 2013 (POSIX). Another important
-points were to keep it small and header-only.
-These goals have been more important than performance.
+This implementation aims to support faithfully all features of
+std::printf according to ISO 9899:2011 and IEEE Std 1003.1, 2013
+(POSIX). Another important points were to keep it small and
+header-only. These goals have been more important than performance.
 
 This implementation is based on the C++ standard
 library and its existing conversions. Some work has
