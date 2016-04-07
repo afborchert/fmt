@@ -46,8 +46,8 @@ fmt::printf("c = %20.4g\n", c);
 
 fmt::printf uses C++ I/O format flags but makes sure that the previous
 state of the output stream is restored to its original state after its
-invocation. Any previous state is ignored, i.e. fmt::printf("%x", val)
-will print val in hex even if std::cout << std::oct has been used
+invocation. Any previous state is ignored, i.e. `fmt::printf("%x", val)`
+will print _val_ in hex even if `std::cout << std::oct` has been used
 before, and the previous octal conversion preference will stay in
 effect for <<-operators after the invocation of fmt::printf.
 
