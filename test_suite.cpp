@@ -920,6 +920,10 @@ void run_tests() {
       testcase("%20.*lg", precision, std::numeric_limits<double>::max());
    }
 
+   /* check that grouping flag is ignored when the base != 10 */
+   testcase("%'8x", 0x12345678);
+   testcase("%'8o", 0x12345678);
+
    /* test %n */
    int offset;
    testcase_with_offset(offset, "%n", &offset);

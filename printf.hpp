@@ -597,7 +597,7 @@ parse_format_segment(const CharT* format, integer arg_index) {
       default:
 	 return result;
    }
-   if ((result.flags & grouping_flag) & (result.base != 10)) {
+   if ((result.flags & grouping_flag) && (result.base != 10)) {
       /* grouping is just supported for %i, %d, %u, %f, %F,
          %g, and %G, i.e. all cases with base == 10 */
       result.flags &= ~grouping_flag;
