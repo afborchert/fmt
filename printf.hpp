@@ -119,7 +119,8 @@
 #if __cplusplus < 201103L
 #error This file requires compiler and library support for the \
 ISO C++ 2011 standard.
-#endif
+#else
+
 #include <cassert>
 #include <cerrno>
 #include <climits>
@@ -1191,4 +1192,5 @@ inline int snprintf(wchar_t* s, std::size_t n,
 
 } // namespace fmt
 
-#endif
+#endif // of #if __cplusplus < 201103L #else ...
+#endif // of #ifndef FMT_PRINTF_HPP

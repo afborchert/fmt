@@ -53,7 +53,7 @@ effect for <<-operators after the invocation of fmt::printf.
 
 This implementation aims to support faithfully all features of
 std::printf according to ISO 9899:2011 and IEEE Std 1003.1, 2013
-(POSIX). Another important points were to keep it small and
+(POSIX). Other important points were to keep it small and
 header-only. These goals have been more important than performance.
 
 This implementation is based on the C++ standard
