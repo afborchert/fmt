@@ -192,6 +192,12 @@ void offset_mismatch(const wchar_t* format, int off1, int off2) {
 void print_values(int index) {
 }
 
+/* C++11 does not provide an output operator for nullptr_t */
+std::ostream& operator<<(std::ostream& out, std::nullptr_t p) {
+   out << "nullptr";
+   return out;
+}
+
 template<typename Value, typename... Values>
 void print_values(int index, Value value, Values&&... values) {
    std::cout << "   argument #" << index << ": '" << value << "'" << std::endl;
@@ -885,6 +891,20 @@ void run_tests() {
       testcase("%-16s", val);
       implementation_dependent_testcase("%p", val);
    }
+
+   const char* ptr_values[] = {"Hi", nullptr};
+   for (auto val: ptr_values) {
+      implementation_dependent_testcase("[%p]", val);
+   }
+   implementation_dependent_testcase("[%p]", nullptr);
+   char string_value[] = "Hi";
+   implementation_dependent_testcase("[%p]", string_value);
+   char* charptr_value = nullptr;
+   implementation_dependent_testcase("[%p]", charptr_value);
+   wchar_t wstring_value[] = L"Hi";
+   implementation_dependent_testcase("[%p]", wstring_value);
+   wchar_t* wcharptr_value = nullptr;
+   implementation_dependent_testcase("[%p]", wcharptr_value);
 
    /* dynamic width and/or precision */
    for (int width = 0; width < 20; ++width) {

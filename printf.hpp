@@ -930,6 +930,21 @@ inline bool print_value(std::basic_ostream<CharT, Traits>& out,
    return !!out;
 }
 
+/* formatted output of std::nullptr_t strings;
+   unfortunately we have no output operator for this type in C++11 */
+template<typename CharT, typename Traits>
+inline bool print_value(std::basic_ostream<CharT, Traits>& out,
+      const format_segment<CharT>& fseg, std::nullptr_t value) {
+   if (fseg.flags & is_pointer) {
+      /* %p given: print pointer value */
+      out << static_cast<const void*>(value);
+      return !!out;
+   } else {
+      /* fail this if %p is not given */
+      return false;
+   }
+}
+
 /* formatted output of char strings that need to be widened;
    precision is honoured */
 template<typename CharT, typename Traits>
@@ -1029,6 +1044,15 @@ print_value(std::basic_ostream<CharT, Traits>& out,
       out << value;
    }
    return !!out;
+}
+
+/* formatted output of non-const char pointers
+   which are delegated to the const char pointer variants */
+template<typename CharT, typename Traits, typename Value>
+inline typename std::enable_if<is_char<Value>::value, bool>::type
+print_value(std::basic_ostream<CharT, Traits>& out,
+      const format_segment<CharT>& fseg, Value* value) {
+   return print_value(out, fseg, static_cast<const Value*>(value));
 }
 
 template<typename CharT, typename Traits>
