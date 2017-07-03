@@ -364,6 +364,26 @@ struct format_segment {
    CharT conversion;
 };
 
+/* parse integer value from format string;
+   return false in case of overflows */
+template<typename CharT, typename T>
+bool parse_integer(const CharT*& format, T& val) {
+   T v{};
+   CharT ch = *format;
+   constexpr T maxval = std::numeric_limits<T>::max();
+   constexpr T maxval10 = maxval / 10;
+   while (ch >= '0' && ch <= '9') {
+      T digit = ch - '0';
+      if (v > maxval10) return false;
+      v *= 10;
+      if (v > maxval - digit) return false;
+      v += digit;
+      ch = *++format;
+   }
+   val = v;
+   return true;
+}
+
 /* parse up to one format specification and
    invoke the respective manipulators for out
    and/or set the corresponding flags */
@@ -402,13 +422,8 @@ parse_format_segment(const CharT* format, integer arg_index) {
    /* check if we have an argument index */
    if (ch >= '1' && ch <= '9') {
       const CharT* begin = format;
-      integer index = ch - '0';
-      ch = *++format;
-      while (ch >= '0' && ch <= '9') {
-	 index = index * 10 + ch - '0';
-	 ch = *++format;
-      }
-      if (ch == '$') {
+      integer index;
+      if (parse_integer(format, index) && *format == '$') {
 	 /* accept argument index */
 	 result.value_index = index - 1;
 	 ch = *++format;
@@ -458,13 +473,8 @@ parse_format_segment(const CharT* format, integer arg_index) {
    if (ch == '*') {
       result.flags |= dyn_width; ch = *++format;
       if (ch >= '1' && ch <= '9') {
-	 integer index = ch - '0';
-	 ch = *++format;
-	 while (ch >= '0' && ch <= '9') {
-	    index = index * 10 + ch - '0';
-	    ch = *++format;
-	 }
-	 if (ch != '$') return result;
+	 integer index;
+	 if (!parse_integer(format, index) || *format != '$') return result;
 	 ch = *++format;
 	 result.width_index = index - 1;
       } else {
@@ -472,10 +482,8 @@ parse_format_segment(const CharT* format, integer arg_index) {
       }
       result.nof_args++;
    } else {
-      while (ch >= '0' && ch <= '9') {
-	 width = width * 10 + ch - '0';
-	 ch = *++format;
-      }
+      if (!parse_integer(format, width)) return result;
+      ch = *format;
       result.width = width;
    }
    /* precision */
@@ -486,13 +494,8 @@ parse_format_segment(const CharT* format, integer arg_index) {
       if (ch == '*') {
 	 result.flags |= dyn_precision; ch = *++format;
 	 if (ch >= '1' && ch <= '9') {
-	    integer index = ch - '0';
-	    ch = *++format;
-	    while (ch >= '0' && ch <= '9') {
-	       index = index * 10 + ch - '0';
-	       ch = *++format;
-	    }
-	    if (ch != '$') return result;
+	    integer index;
+	    if (!parse_integer(format, index) || *format != '$') return result;
 	    ch = *++format;
 	    result.precision_index = index - 1;
 	 } else {
@@ -500,9 +503,9 @@ parse_format_segment(const CharT* format, integer arg_index) {
 	 }
 	 result.nof_args++;
       } else {
-	 while (ch >= '0' && ch <= '9') {
-	    precision = precision * 10 + ch - '0';
-	    ch = *++format;
+	 if (ch >= '0' && ch <= '9') {
+	    if (!parse_integer(format, precision)) return result;
+	    ch = *format;
 	 }
 	 result.precision = precision;
       }
