@@ -940,6 +940,11 @@ void run_tests() {
       testcase("%20.*lg", precision, std::numeric_limits<double>::max());
    }
 
+   /* huge width values */
+   testcase("%1024d", 42);
+   testcase("%2048d", 42);
+   testcase("%4095d", 42); /* see ISO 9899:2011 § 7.21.6.1 (15) */
+
    /* check that grouping flag is ignored when the base != 10 */
    testcase("%'8x", 0x12345678);
    testcase("%'8o", 0x12345678);
@@ -955,6 +960,7 @@ void run_tests() {
    testcase("%1$s", "Hello world");
    testcase("%2$s, %1$s", "world", "hello");
    testcase("%3$*1$s %2$d", 20, 4711, "Hi!");
+   testcase("%1$.*2$f", 1.23456789, 3);
    /* more POSIX feature tests below under a well-defined locale */
 
    /* wide characters;
