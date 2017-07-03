@@ -132,6 +132,7 @@ ISO C++ 2011 standard.
 #include <exception>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <locale>
 #include <sstream>
 #include <streambuf>
