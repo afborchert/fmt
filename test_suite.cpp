@@ -745,6 +745,11 @@ void run_tests() {
       testcase("% -8.4f", val);
    }
 
+#ifdef __SUNPRO_CC
+   // suppress the harmless warning regarding the intended overflow
+   // of std::numeric_limits<double>::max() * 2
+   #pragma error_messages (off, mulfovfl)
+#endif
    double d_values[] = {-0.0, 1234.5678, 1.25E-10, 3E+10,
       std::numeric_limits<double>::min() / 2,
       std::numeric_limits<double>::max() * 2,
