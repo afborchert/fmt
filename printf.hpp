@@ -892,6 +892,14 @@ print_value(std::basic_ostream<CharT, Traits>& out,
    return !!out;
 }
 
+/* special case for bool
+   which helps to suppress -Wbool-compare warnings of gcc */
+template<typename CharT, typename Traits>
+bool print_value(std::basic_ostream<CharT, Traits>& out,
+      const format_segment<CharT>& fseg, bool value) {
+   return print_value(out, fseg, static_cast<unsigned int>(value));
+}
+
 /* formatted output of CharT strings;
    precision is honoured */
 template<typename CharT, typename Traits>

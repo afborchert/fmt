@@ -331,6 +331,12 @@ void run_tests() {
    }
    testcase("%c", 65);
 
+   for (bool val: {false, true}) {
+      testcase("%d", val);
+      testcase("%3d", val);
+      testcase("%03d", val);
+   }
+
    signed char sc_values[] = {'a', 'A', '.', '/', ' ', -1,
       std::numeric_limits<signed char>::min(),
       std::numeric_limits<signed char>::max()};
