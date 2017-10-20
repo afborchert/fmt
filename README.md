@@ -94,7 +94,7 @@ apostrophe flag, not on the locale.
 ## License
 
 This package is available under the terms of
-the [https://opensource.org/licenses/MIT](MIT License).
+the [MIT License](https://opensource.org/licenses/MIT).
 
 ## Files
 
