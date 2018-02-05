@@ -1113,7 +1113,6 @@ inline int printf(std::basic_ostream<CharT, Traits>& out,
       const CharT* format) {
    impl::counting_ostream<CharT, Traits> cout(out);
 
-   impl::format_segment<CharT> fseg;
    while (format) {
       auto fseg = impl::parse_format_segment(format, 0);
       if (!fseg.valid) return -1;
