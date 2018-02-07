@@ -306,6 +306,28 @@ inline void reset_format(std::basic_ios<CharT, Traits>& s) {
    s.copyfmt(dflt);
 }
 
+/* some compilers like icpc or nvcc deliver a warning even
+   for template parameters that we have a "pointless comparison
+   of unsigned with zero"; the function is_negative is used
+   to circumvent this */
+template<typename Value>
+typename std::enable_if<
+      std::is_integral<typename std::remove_reference<Value>::type>::value &&
+      std::is_signed<typename std::remove_reference<Value>::type>::value,
+      bool>::type
+is_negative(Value value) {
+   return value < 0;
+}
+
+template<typename Value>
+typename std::enable_if<
+      std::is_integral<typename std::remove_reference<Value>::type>::value &&
+      !std::is_signed<typename std::remove_reference<Value>::type>::value,
+      bool>::type
+is_negative(Value value) {
+   return false;
+}
+
 /* internal signed integer type which is used for indices and byte counts */
 using integer = std::make_signed<std::size_t>::type;
 
@@ -842,7 +864,7 @@ print_value(std::basic_ostream<CharT, Traits>& out,
 	 out << std::internal << std::setfill(out.widen('0'));
       } else if (fseg.flags & precision) {
 	 integer digits = count_digits(value, fseg.base);
-	 integer signwidth = (value < 0) ||
+	 integer signwidth = is_negative(value) ||
 	    (fseg.flags & (plus_flag | space_flag));
 	 integer extra = signwidth;
 	 if (value != 0 && (fseg.flags & special_flag) && fseg.base == 16) {
@@ -870,7 +892,7 @@ print_value(std::basic_ostream<CharT, Traits>& out,
 	       std::setw(fseg.precision + extra);
 	 }
       }
-      if ((fseg.flags & space_flag) && value >= 0) {
+      if ((fseg.flags & space_flag) && !is_negative(value)) {
 	 if (!out.put(' ')) return false;
 	 auto width = out.width(0);
 	 if (width > 0) {
