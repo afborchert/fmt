@@ -1,5 +1,5 @@
 /* 
-   Copyright (c) 2015, 2016 Andreas F. Borchert
+   Copyright (c) 2015, 2016, 2020 Andreas F. Borchert
    All rights reserved.
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -335,16 +335,17 @@ using flagset = unsigned short;
 constexpr flagset is_pointer = 1<<0;
 constexpr flagset is_charval = 1<<1;
 constexpr flagset is_integer = 1<<2;
-constexpr flagset toupper = 1<<3; // when std::uppercase won't cut it
-constexpr flagset space_flag = 1<<4; // add space, if non-negative
-constexpr flagset plus_flag = 1<<5;
-constexpr flagset dyn_width = 1<<6;
-constexpr flagset precision = 1<<7; // precision was given
-constexpr flagset dyn_precision = 1<<8;
-constexpr flagset zero_fill = 1<<9;
-constexpr flagset minus_flag = 1<<10;
-constexpr flagset special_flag = 1<<11;
-constexpr flagset grouping_flag = 1<<12;
+constexpr flagset is_unsigned = 1<<3;
+constexpr flagset toupper = 1<<4; // when std::uppercase won't cut it
+constexpr flagset space_flag = 1<<5; // add space, if non-negative
+constexpr flagset plus_flag = 1<<6;
+constexpr flagset dyn_width = 1<<7;
+constexpr flagset precision = 1<<8; // precision was given
+constexpr flagset dyn_precision = 1<<9;
+constexpr flagset zero_fill = 1<<10;
+constexpr flagset minus_flag = 1<<11;
+constexpr flagset special_flag = 1<<12;
+constexpr flagset grouping_flag = 1<<13;
 
 /* this structure represents a segment of a format string
    up to and including at most one placeholder */
@@ -545,9 +546,10 @@ parse_format_segment(const CharT* format, integer arg_index) {
    /* conversion operation */
    result.conversion = ch;
    switch (ch) {
+      case 'u':
+	 result.flags |= is_unsigned;
       case 'd':
       case 'i':
-      case 'u':
 	 result.flags |= is_integer;
 	 result.base = 10;
 	 break;
@@ -740,6 +742,8 @@ inline typename std::enable_if<
       !std::is_integral<
 	 typename std::remove_reference<Value>::type>::value &&
       !std::is_floating_point<
+	 typename std::remove_reference<Value>::type>::value &&
+      !std::is_pointer<
 	 typename std::remove_reference<Value>::type>::value, bool>::type
 print_value(std::basic_ostream<CharT, Traits>& out,
       const format_segment<CharT>& fseg, Value&& value) {
@@ -930,6 +934,12 @@ inline bool print_value(std::basic_ostream<CharT, Traits>& out,
    if (fseg.flags & is_pointer) {
       /* %p given: print pointer value */
       out << static_cast<const void*>(value);
+   } else if (fseg.flags & is_unsigned) {
+      /* print it as an unsigned integer value */
+      print_value(out, fseg, reinterpret_cast<std::uintptr_t>(value));
+   } else if (fseg.flags & is_integer) {
+      /* print it as a signed integer value */
+      print_value(out, fseg, reinterpret_cast<std::intptr_t>(value));
    } else {
       if (fseg.flags & precision) {
 	 integer precision = fseg.precision;
@@ -973,8 +983,16 @@ inline bool print_value(std::basic_ostream<CharT, Traits>& out,
       /* %p given: print pointer value */
       out << static_cast<const void*>(value);
       return !!out;
+   } else if (fseg.flags & is_unsigned) {
+      /* print it as an unsigned integer value */
+      print_value(out, fseg, reinterpret_cast<std::uintptr_t>(value));
+      return !!out;
+   } else if (fseg.flags & is_integer) {
+      /* print it as a signed integer value */
+      print_value(out, fseg, reinterpret_cast<std::intptr_t>(value));
+      return !!out;
    } else {
-      /* fail this if %p is not given */
+      /* fail otherwise */
       return false;
    }
 }
@@ -988,6 +1006,12 @@ print_value(std::basic_ostream<CharT, Traits>& out,
    if (fseg.flags & is_pointer) {
       /* %p given: print pointer value */
       out << static_cast<const void*>(value);
+   } else if (fseg.flags & is_unsigned) {
+      /* print it as an unsigned integer value */
+      print_value(out, fseg, reinterpret_cast<std::uintptr_t>(value));
+   } else if (fseg.flags & is_integer) {
+      /* print it as a signed integer value */
+      print_value(out, fseg, reinterpret_cast<std::intptr_t>(value));
    } else {
       integer padding = 0;
       integer len = 0;
@@ -1034,6 +1058,12 @@ print_value(std::basic_ostream<CharT, Traits>& out,
    if (fseg.flags & is_pointer) {
       /* %p given: print pointer value */
       out << static_cast<const void*>(value);
+   } else if (fseg.flags & is_unsigned) {
+      /* print it as an unsigned integer value */
+      print_value(out, fseg, reinterpret_cast<std::uintptr_t>(value));
+   } else if (fseg.flags & is_integer) {
+      /* print it as a signed integer value */
+      print_value(out, fseg, reinterpret_cast<std::intptr_t>(value));
    } else {
       integer len = 0;
       if (fseg.flags & precision) {
@@ -1074,6 +1104,12 @@ print_value(std::basic_ostream<CharT, Traits>& out,
    if (fseg.flags & is_pointer) {
       /* print the value of the pointer */
       out << static_cast<const void*>(value);
+   } else if (fseg.flags & is_unsigned) {
+      /* print it as an unsigned integer value */
+      print_value(out, fseg, reinterpret_cast<std::uintptr_t>(value));
+   } else if (fseg.flags & is_integer) {
+      /* print it as a signed integer value */
+      print_value(out, fseg, reinterpret_cast<std::intptr_t>(value));
    } else {
       out << value;
    }

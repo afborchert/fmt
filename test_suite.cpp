@@ -1,5 +1,5 @@
 /* 
-   Copyright (c) 2015, 2016 Andreas F. Borchert
+   Copyright (c) 2015, 2016, 2020 Andreas F. Borchert
    All rights reserved.
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -311,6 +311,65 @@ bool testcase_with_offset(int& offset,
    return general_testcase(/* implementation defined = */ false,
       /* with offset = */ true, offset,
       format, std::forward<Values>(values)...);
+}
+
+template<typename CharT, typename... Values>
+bool special_testcase(int expected_count,
+      const CharT* expected_string,
+      const CharT* format, Values&&... values) {
+   ++testcases;
+   bool ok = true;
+   std::basic_ostringstream<CharT> os;
+   auto count = fmt::printf(os, format, std::forward<Values>(values)...);
+   if ((count < 0 || expected_count < 0) && count != expected_count) {
+      print("special test for \"%s\" fails,", format);
+      print(" fmt returns %d but we expected %d\n", count, expected_count);
+      print_values(1, values...);
+      return false;
+   }
+   if (count != expected_count) {
+      ok = false;
+   }
+   std::basic_string<CharT> fmt_str(os.str());
+   std::basic_string<CharT> expected_str(expected_string);
+   if (fmt_str != expected_str) {
+      ok = false;
+   }
+   if (ok) {
+      ++successful; return true;
+   } else {
+      print("special test for \"%s\" fails:\n", format);
+      if (count != expected_count) {
+	 print("   fmt returns:           %d\n", count);
+	 print("   expected return value: %d\n", expected_count);
+      }
+      print("   fmt delivers:          \"%s\"\n", fmt_str);
+      print("   expected:              \"%s\"\n", expected_str);
+      print_values(1, values...);
+      return false;
+   }
+}
+
+/* for tests of the support for output operators */
+template<typename T>
+struct TestObject {
+   TestObject() : object() {
+   }
+   TestObject(T&& val) : object(val) {
+   }
+   T object;
+};
+template<typename CharT, typename Traits, typename T>
+std::basic_ostream<CharT, Traits>&
+operator<<(std::basic_ostream<CharT, Traits>& out, const TestObject<T>& t) {
+   out << t.object << "/TO";
+   return out;
+}
+template<typename CharT, typename Traits, typename T>
+std::basic_ostream<CharT, Traits>&
+operator<<(std::basic_ostream<CharT, Traits>& out, const TestObject<T>* tp) {
+   out << tp->object << "/TO";
+   return out;
 }
 
 void run_tests() {
@@ -1089,6 +1148,29 @@ void run_tests() {
 	    }
 	 }
       }
+   }
+
+   /* run special cases which are not supported by std::printf
+      but fmt::printf */
+   special_testcase(1, "0", "%d", reinterpret_cast<void*>(0));
+   special_testcase(4, "1024", "%d", reinterpret_cast<void*>(1024));
+   special_testcase(2, "-1", "%d", reinterpret_cast<void*>(-1));
+   special_testcase(4, "2000", "%o", reinterpret_cast<void*>(1024));
+   {
+      TestObject<int> to{42};
+      special_testcase(5, "42/TO", "%s", to);
+      special_testcase(7, "  42/TO", "%4d", to);
+   }
+   {
+      TestObject<double> to{1.5};
+      special_testcase(6, "1.5/TO", "%s", to);
+      special_testcase(8, "  1.5/TO", "%5s", to);
+      special_testcase(9, "1.5000/TO", "%.4f", to);
+   }
+   {
+      auto top = new TestObject<int>{64};
+      special_testcase(5, "64/TO", "%s", top);
+      delete top;
    }
 
    fmt::printf("%u/%u tests succeeded\n", successful, testcases);

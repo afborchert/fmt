@@ -76,7 +76,7 @@ In particular, fmt::printf supports
   by floating point conversions only)
 * conversions that take the n-th argument, e.g.
   `print("%2$s, %1$s\n", "world", "Hello");`, and
-* `%n` conversions that take an int* where the
+* `%n` conversions that take an `int*` where the
   number of bytes written so far is stored.
 
 Note that fmt::printf, much like std::printf, is
@@ -90,6 +90,27 @@ that asks for a grouping with thousands. To
 conform to std::printf behaviour, the grouping
 by fmt::printf depends solely on the use of the
 apostrophe flag, not on the locale.
+
+## Extensions
+`fmt::printf` allows to print pointers
+using `%d` or %o` as decimal or octal values,
+respectively. `%u` allows to print pointers
+as an unsigned decimal value.
+
+Output operators for pointers are supported.
+The format `%s` should be used to enforce
+the use of the output operator. Otherwise,
+formats like `%d`, `%o`, or `%p` cause the
+pointer value to be printed and the output
+operator to be ignored.
+
+In general, `%s` should be prefered for
+types where an output operator is available.
+There are few exceptions like `std::complex`
+where formats like `%g` are supported. `fmt::printf`
+configures all `std::ios_base` formatting flags
+in these cases but leaves their interpretation to
+the matching output operator.
 
 ## License
 
