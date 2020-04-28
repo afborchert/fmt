@@ -92,8 +92,8 @@ by fmt::printf depends solely on the use of the
 apostrophe flag, not on the locale.
 
 ## Extensions
-`fmt::printf` allows to print pointers
-using `%d` or %o` as decimal or octal values,
+fmt::printf allows to print pointers
+using `%d` or `%o` as decimal or octal values,
 respectively. `%u` allows to print pointers
 as an unsigned decimal value.
 
@@ -107,7 +107,7 @@ operator to be ignored.
 In general, `%s` should be prefered for
 types where an output operator is available.
 There are few exceptions like `std::complex`
-where formats like `%g` are supported. `fmt::printf`
+where formats like `%g` are supported. fmt::printf
 configures all `std::ios_base` formatting flags
 in these cases but leaves their interpretation to
 the matching output operator.
