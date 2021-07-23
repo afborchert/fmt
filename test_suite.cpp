@@ -192,11 +192,26 @@ void offset_mismatch(const wchar_t* format, int off1, int off2) {
 void print_values(int index) {
 }
 
-/* C++11 does not provide an output operator for nullptr_t */
+#if __cplusplus < 201703L
+/* an output operator for nullptr_t is provided since C++17
+   but neither for C++11 nor C++17;
+   however clang++ defines this operator also for C++11 and C++14
+   beginning from at least clang version 12 */
+#if defined(__clang__) && defined(_LIBCPP_VERSION)
+   #if _LIBCPP_VERSION < 12000
+      #define DEFINE_OUTPUT_OPERATOR_FOR_NULLPTR
+   #endif
+#else
+   #define DEFINE_OUTPUT_OPERATOR_FOR_NULLPTR
+#endif
+
+#ifdef DEFINE_OUTPUT_OPERATOR_FOR_NULLPTR
 std::ostream& operator<<(std::ostream& out, std::nullptr_t p) {
    out << "nullptr";
    return out;
 }
+#endif
+#endif
 
 template<typename Value, typename... Values>
 void print_values(int index, Value value, Values&&... values) {
