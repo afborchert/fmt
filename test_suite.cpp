@@ -900,7 +900,6 @@ void run_tests() {
    }
 
    long double ld_values[] = {-0.0L, 1234.5678L, 1.25E-10L, 3E+10L,
-      1.23456789e+1500L,
       std::numeric_limits<long double>::min() / 2,
       std::numeric_limits<long double>::max() * 2,
       std::numeric_limits<long double>::min(),
