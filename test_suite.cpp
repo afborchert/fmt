@@ -194,7 +194,7 @@ void print_values(int index) {
 
 #if __cplusplus < 201703L
 /* an output operator for nullptr_t is provided since C++17
-   but neither for C++11 nor C++17;
+   but neither for C++11 nor C++14;
    however clang++ defines this operator also for C++11 and C++14
    beginning from at least clang version 12 */
 #if defined(__clang__) && defined(_LIBCPP_VERSION)
