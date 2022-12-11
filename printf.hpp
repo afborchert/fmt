@@ -1255,7 +1255,7 @@ inline int snprintf(char* s, std::size_t n,
    if (nbytes < 0) return nbytes;
    if (n == 0) return nbytes;
    std::string result(os.str());
-   if (nbytes + 1 <= n) {
+   if (static_cast<std::size_t>(nbytes) + 1 <= n) {
       std::strcpy(s, result.c_str());
       return nbytes;
    } else {
