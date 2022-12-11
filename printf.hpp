@@ -824,7 +824,7 @@ print_char_value(std::basic_ostream<CharT, Traits>& out,
 }
 
 /* formatted output of character values (in case of %c)
-   where we got a non-char-type numerical value */
+   that need to be converted */
 template<typename CharT, typename Traits, typename Value>
 inline typename std::enable_if<
       is_char<Value>::value &&
