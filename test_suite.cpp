@@ -189,7 +189,7 @@ void offset_mismatch(const wchar_t* format, int off1, int off2) {
       off1, off2);
 }
 
-void print_values(int index) {
+void print_values(int) {
 }
 
 #if __cplusplus < 201703L

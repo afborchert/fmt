@@ -324,7 +324,7 @@ typename std::enable_if<
       std::is_integral<typename std::remove_reference<Value>::type>::value &&
       !std::is_signed<typename std::remove_reference<Value>::type>::value,
       bool>::type
-is_negative(Value value) {
+is_negative(Value) {
    return false;
 }
 
@@ -548,6 +548,9 @@ parse_format_segment(const CharT* format, integer arg_index) {
    switch (ch) {
       case 'u':
 	 result.flags |= is_unsigned;
+	 #if __cplusplus >=201703L
+	 [[fallthrough]];
+	 #endif
       case 'd':
       case 'i':
 	 result.flags |= is_integer;
@@ -693,7 +696,7 @@ struct get_value_f {
    /* return -1 when the value is not of integral type */
    template<typename Value>
    typename std::enable_if<!std::is_integral<Value>::value, integer>::type
-   operator()(Value value) {
+   operator()(Value) {
       return -1;
    }
 };
@@ -719,7 +722,7 @@ struct set_value_f {
       return 0;
    }
    template<typename Value>
-   integer operator()(Value ptr) {
+   integer operator()(Value) {
       return -1;
    }
    std::streamsize offset;
@@ -746,7 +749,7 @@ inline typename std::enable_if<
       !std::is_pointer<
 	 typename std::remove_reference<Value>::type>::value, bool>::type
 print_value(std::basic_ostream<CharT, Traits>& out,
-      const format_segment<CharT>& fseg, Value&& value) {
+      const format_segment<CharT>&, Value&& value) {
    out << value;
    return !!out;
 }
@@ -798,7 +801,7 @@ inline integer count_digits(Value value, integer base) {
 template<typename CharT, typename Traits, typename Value>
 inline typename std::enable_if<!is_char<Value>::value, bool>::type
 print_char_value(std::basic_ostream<CharT, Traits>& out,
-      const format_segment<CharT>& fseg, Value value) {
+      const format_segment<CharT>&, Value value) {
    out << static_cast<CharT>(value);
    return !!out;
 }
@@ -807,7 +810,7 @@ print_char_value(std::basic_ostream<CharT, Traits>& out,
    without conversion */
 template<typename CharT, typename Traits>
 inline bool print_char_value(std::basic_ostream<CharT, Traits>& out,
-      const format_segment<CharT>& fseg, CharT value) {
+      const format_segment<CharT>&, CharT value) {
    out << value;
    return !!out;
 }
@@ -818,7 +821,7 @@ template<typename CharT, typename Traits>
 inline typename std::enable_if<!std::is_same<char, CharT>::value,
       bool>::type
 print_char_value(std::basic_ostream<CharT, Traits>& out,
-      const format_segment<CharT>& fseg, char value) {
+      const format_segment<CharT>&, char value) {
    out << out.widen(value);
    return !!out;
 }
@@ -832,7 +835,7 @@ inline typename std::enable_if<
       !std::is_same<Value, CharT>::value,
       bool>::type
 print_char_value(std::basic_ostream<CharT, Traits>& out,
-      const format_segment<CharT>& fseg, Value value) {
+      const format_segment<CharT>&, Value value) {
    auto& f = std::use_facet<std::codecvt<Value, CharT, std::mbstate_t>>(
       out.getloc());
    std::mbstate_t state{};
