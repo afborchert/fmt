@@ -1,5 +1,5 @@
 /* 
-   Copyright (c) 2015, 2016, 2020 Andreas F. Borchert
+   Copyright (c) 2015, 2016, 2020, 2023 Andreas F. Borchert
    All rights reserved.
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -985,10 +985,12 @@ void run_tests() {
    implementation_dependent_testcase("[%p]", string_value);
    char* charptr_value = nullptr;
    implementation_dependent_testcase("[%p]", charptr_value);
+   #if __cplusplus < 202002L
    wchar_t wstring_value[] = L"Hi";
    implementation_dependent_testcase("[%p]", wstring_value);
    wchar_t* wcharptr_value = nullptr;
    implementation_dependent_testcase("[%p]", wcharptr_value);
+   #endif
 
    /* dynamic width and/or precision */
    for (int width = 0; width < 20; ++width) {
@@ -1068,6 +1070,7 @@ void run_tests() {
    if (locale_ok) {
       /* make sure that C++ operates with the same locale */
 
+      #if __cplusplus < 202002L
       testcase(L"Hello world");
 
       /* note that we skip numeric_limits in case of wchar_t
@@ -1123,6 +1126,7 @@ void run_tests() {
 	 testcase(L"%10s", val);
 	 testcase(L"%10.2s", val);
       }
+      #endif
 
       /* POSIX extension for thousands under a non-C locale */
 

@@ -1,5 +1,5 @@
 /* 
-   Copyright (c) 2015, 2016, 2020 Andreas F. Borchert
+   Copyright (c) 2015, 2016, 2020, 2023 Andreas F. Borchert
    All rights reserved.
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -1163,7 +1163,7 @@ set_value(Value* ptr, std::streamsize value) {
 }
 
 template<typename Value>
-inline bool set_value(Value ptr, std::streamsize value) {
+inline bool set_value(Value, std::streamsize) {
    return false;
 }
 
@@ -1276,7 +1276,7 @@ inline int snprintf(wchar_t* s, std::size_t n,
    if (nbytes < 0) return nbytes;
    if (n == 0) return nbytes;
    std::wstring result(os.str());
-   if (nbytes + 1 <= n) {
+   if (static_cast<std::size_t>(nbytes) + 1 <= n) {
       std::wcscpy(s, result.c_str());
       return nbytes;
    } else {
