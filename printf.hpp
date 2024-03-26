@@ -1,5 +1,5 @@
 /* 
-   Copyright (c) 2015, 2016, 2020, 2023 Andreas F. Borchert
+   Copyright (c) 2015, 2016, 2020, 2023, 2024 Andreas F. Borchert
    All rights reserved.
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -1263,7 +1263,7 @@ inline int snprintf(char* s, std::size_t n,
       return nbytes;
    } else {
       std::strcpy(s, result.substr(0, n-1).c_str());
-      s[n] = 0;
+      s[n-1] = 0;
       return n-1;
    }
 }

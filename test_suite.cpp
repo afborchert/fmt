@@ -1,5 +1,5 @@
 /* 
-   Copyright (c) 2015, 2016, 2020, 2023 Andreas F. Borchert
+   Copyright (c) 2015, 2016, 2020, 2023, 2024 Andreas F. Borchert
    All rights reserved.
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -29,6 +29,7 @@
    identical results
 */
 
+#include <algorithm>
 #include <cerrno>
 #include <clocale>
 #include <cstddef>
@@ -131,6 +132,16 @@ void diff_analysis(bool implementation_defined,
       print(L"   fmt delivers: '%s' (%d)\n", buf1, count1);
       print(L"   std delivers: '%s' (%d)\n", buf2, count2);
    }
+}
+
+void buffer_overrun(const char* format, int len, int index) {
+   print("buffer overrun for \"%s\" and len = %d at index = %d\n",
+      format, len, index);
+}
+
+void buffer_overrun(const wchar_t* format, int len, int index) {
+   print(L"buffer overrun for \"%s\" and len = %d at index = %d\n",
+      format, len, index);
 }
 
 void count_mismatch(bool implementation_defined,
@@ -254,12 +265,38 @@ bool check_hexfloat() {
 template<typename CharT, typename... Values>
 bool general_testcase(bool implementation_defined,
       bool with_offset, int& offset,
+      bool to_string, int string_len,
       const CharT* format, Values&&... values) {
    ++testcases;
    std::basic_ostringstream<CharT> os;
    errno = 0;
    int off1 = 0; int off2 = 0;
-   int count1 = fmt::printf(os, format, std::forward<Values>(values)...);
+   int count1 = 0;
+   if (to_string) {
+      CharT* buf = new CharT[string_len + 8];
+      std::fill_n(buf, string_len + 8, 42);
+      count1 = fmt::snprintf(buf, string_len, format, std::forward<Values>(values)...);
+      if (count1 > 0) {
+	 int i = 0;
+	 while (i < string_len) {
+	    if (!buf[i]) break;
+	    ++i;
+	 }
+	 if (i < string_len) {
+	    for (i = string_len; i < string_len + 8; ++i) {
+	       if (buf[i] != 42) {
+		  buffer_overrun(format, string_len, i);
+		  print_values(1, values...);
+		  return false;
+	       }
+	    }
+	    os << buf;
+	 }
+      }
+      delete[] buf;
+   } else {
+      count1 = fmt::printf(os, format, std::forward<Values>(values)...);
+   }
    if (with_offset) off1 = offset;
    int err1 = errno;
    errno = 0;
@@ -284,8 +321,14 @@ bool general_testcase(bool implementation_defined,
    }
 
    /* compare the resulting strings */
-   CharT* buf = new CharT[count2 + 1];
-   sprint(buf, count2 + 1, format, values...);
+   int buflen, len;
+   if (to_string) {
+      buflen = string_len + 1; len = string_len;
+   } else {
+      buflen = len = count2 + 1;
+   }
+   CharT* buf = new CharT[buflen] {};
+   sprint(buf, len, format, values...);
    std::basic_string<CharT> osstr(os.str());
    bool ok = compare(buf, osstr.c_str()) == 0;
    if (!ok) {
@@ -308,6 +351,7 @@ bool testcase(const CharT* format, Values&&... values) {
    int offset = 0;
    return general_testcase(/* implementation defined = */ false,
       /* with offset = */ false, /* unused */ offset,
+      /* to_string = */ false, /* string_len = */ 0,
       format, std::forward<Values>(values)...);
 }
 
@@ -317,6 +361,7 @@ bool implementation_dependent_testcase(const CharT* format,
    int offset = 0;
    return general_testcase(/* implementation defined = */ true,
       /* with offset = */ false, /* unused */ offset,
+      /* to_string = */ false, /* string_len = */ 0,
       format, std::forward<Values>(values)...);
 }
 
@@ -325,6 +370,17 @@ bool testcase_with_offset(int& offset,
       const CharT* format, Values&&... values) {
    return general_testcase(/* implementation defined = */ false,
       /* with offset = */ true, offset,
+      /* to_string = */ false, /* string_len = */ 0,
+      format, std::forward<Values>(values)...);
+}
+
+template<typename CharT, typename... Values>
+bool testcase_for_snprintf(int string_len,
+      const CharT* format, Values&&... values) {
+   int offset = 0;
+   return general_testcase(/* implementation defined = */ false,
+      /* with offset = */ false, /* unused */ offset,
+      /* to_string = */ true, /* string_len = */ string_len,
       format, std::forward<Values>(values)...);
 }
 
@@ -1189,6 +1245,12 @@ void run_tests() {
       auto top = new TestObject<int>{64};
       special_testcase(5, "64/TO", "%s", top);
       delete top;
+   }
+
+   /* some testcases for fmt::snprintf */
+   char s[] = "Hello, world!";
+   for (int len = 0; len < static_cast<int>(sizeof(s)) + 1; ++len) {
+      testcase_for_snprintf(len, "%s", s);
    }
 
    fmt::printf("%u/%u tests succeeded\n", successful, testcases);
