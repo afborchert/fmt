@@ -62,6 +62,9 @@ int sprint(char* buffer, std::size_t size,
 #if defined(__clang__)
    #pragma clang diagnostic ignored "-Wformat-security"
 #endif
+#if defined(__GNUC__)
+   #pragma GCC diagnostic ignored "-Wformat-security"
+#endif
    return std::snprintf(buffer, size, format, std::forward<Values>(values)...);
 }
 
@@ -217,7 +220,7 @@ void print_values(int) {
 #endif
 
 #ifdef DEFINE_OUTPUT_OPERATOR_FOR_NULLPTR
-std::ostream& operator<<(std::ostream& out, std::nullptr_t p) {
+std::ostream& operator<<(std::ostream& out, std::nullptr_t) {
    out << "nullptr";
    return out;
 }
@@ -1085,7 +1088,7 @@ void run_tests() {
    /* huge width values */
    testcase("%1024d", 42);
    testcase("%2048d", 42);
-   testcase("%4095d", 42); /* see ISO 9899:2011 ง 7.21.6.1 (15) */
+   testcase("%4095d", 42); /* see ISO 9899:2011 ยง 7.21.6.1 (15) */
 
    /* check that grouping flag is ignored when the base != 10 */
    testcase("%'8x", 0x12345678);

@@ -1,6 +1,8 @@
-CC := $(CXX)
-DEBUG := -g
-CXXFLAGS := -Wall -std=c++11 $(DEBUG)
+CC = $(CXX)
+DEBUG = -g
+STD = -std=c++11
+OPT =
+CXXFLAGS := -Wall -Wextra -pedantic $(STD) $(OPT) $(DEBUG)
 LDFLAGS := $(DEBUG)
 .PHONY:		all clean depend
 all:		test_suite

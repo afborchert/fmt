@@ -92,7 +92,7 @@
       Note that he used one setformat per placeholder as
       C++ at that time did not support variadic templates.
       This paper is available at
-	 http://horstmann.com/cpp/iostreams.html
+	 https://horstmann.com/cpp/iostreams.html
 
     - The Boost Format library has created an approach
       that does not depend on variadic templates. The
@@ -100,17 +100,17 @@
 
       std::cout << boost::format("(x, y) = (%4f, %4f)\n" % x % y;
 
-      See http://www.boost.org/doc/libs/1_59_0/libs/format/doc/format.html
+      See https://www.boost.org/doc/libs/1_59_0/libs/format/doc/format.html
 
     - There is a proposal by Zhihao Yuan for a printf-like interface for the
       C++ streams library:
 
       std::cout << std::putf("(x, y) = (%4f, %4f)\n", x, y);
 
-      See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3506.html
+      See https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3506.html
       and https://github.com/lichray/formatxx
 
-    - http://codereview.stackexchange.com/questions/63578/printf-like-formatting-for-stdostream-not-exactly-boostformat
+    - https://codereview.stackexchange.com/questions/63578/printf-like-formatting-for-stdostream-not-exactly-boostformat
 */
 
 #ifndef FMT_PRINTF_HPP
@@ -140,16 +140,32 @@ ISO C++ 2011 standard.
 #include <tuple>
 #include <type_traits>
 
+/* avoid warnings for fallthroughs */
+#if __cplusplus >= 201703L
+   #define FMT_PRINTF_FALLTHROUGH [[fallthrough]];
+#else
+   #if defined(__GNUC__)
+      #define FMT_PRINTF_FALLTHROUGH __attribute__ ((fallthrough));
+   #else
+      #define FMT_PRINTF_FALLTHROUGH
+   #endif
+   #if defined(__clang__)
+      #pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+   #endif
+#endif
+
 namespace fmt {
 
 namespace impl {
 
-/* type trait to recognize char types which can be distinguished
-   from regular numerical types, see also
-   http://stackoverflow.com/questions/20958262/char16-t-and-char32-t-types-in-c11
+/* type trait to recognize encoded character types which can be distinguished
+   from regular numerical types, see also [iosfwd.syn]
 */
 template<typename T> struct is_char : public std::false_type {};
 template<> struct is_char<char> : public std::true_type {};
+#if __cplusplus >= 202002L
+template<> struct is_char<char8_t> : public std::true_type {};
+#endif
 template<> struct is_char<wchar_t> : public std::true_type {};
 template<> struct is_char<char16_t> : public std::true_type {};
 template<> struct is_char<char32_t> : public std::true_type {};
@@ -161,7 +177,7 @@ template<typename CharT, typename Traits = std::char_traits<CharT>>
 class counting_ostreambuf : public std::basic_streambuf<CharT, Traits> {
    public:
       counting_ostreambuf(std::basic_streambuf<CharT, Traits>& sbuf) :
-	 sbuf(sbuf), nbytes(0) {
+	 sbuf(sbuf) {
       }
       std::streamsize get_count() const {
 	 return nbytes;
@@ -180,7 +196,7 @@ class counting_ostreambuf : public std::basic_streambuf<CharT, Traits> {
       }
       virtual int_type overflow(int_type ch) {
 	 /* modeled after
-	    http://stackoverflow.com/questions/10921761/extending-c-ostream */
+	    https://stackoverflow.com/questions/10921761/extending-c-ostream */
 	 if (ch == traits_type::eof()) {
 	    return traits_type::eof();
 	 } else {
@@ -193,7 +209,7 @@ class counting_ostreambuf : public std::basic_streambuf<CharT, Traits> {
       }
    private:
       std::basic_streambuf<CharT, Traits>& sbuf;
-      std::streamsize nbytes;
+      std::streamsize nbytes = 0;
 };
 
 template<typename CharT, typename Traits = std::char_traits<CharT>>
@@ -548,9 +564,7 @@ parse_format_segment(const CharT* format, integer arg_index) {
    switch (ch) {
       case 'u':
 	 result.flags |= is_unsigned;
-	 #if __cplusplus >=201703L
-	 [[fallthrough]];
-	 #endif
+	 FMT_PRINTF_FALLTHROUGH
       case 'd':
       case 'i':
 	 result.flags |= is_integer;
@@ -658,7 +672,7 @@ template<> struct gen_seq<0> {
 };
 
 /* idea taken from
-   http://stackoverflow.com/questions/21062864/optimal-way-to-access-stdtuple-element-in-runtime-by-index
+   https://stackoverflow.com/questions/21062864/optimal-way-to-access-stdtuple-element-in-runtime-by-index
 */
 
 /* apply f on the n-th element of a tuple for compile-time n */
