@@ -72,10 +72,10 @@
    Restrictions:
       - The combination of hexfloat with a precision (e.g. "%.2a") 
         is not supported by C++11 (see 22.4.2.2.2 in ISO 14882:2011)
-	but supported by std::printf (see 7.21.6.1 in ISO 9899:2011).
-	As this implementation depends on the C++11 library, it
-	appears hard to find a reasonable workaround for this
-	diverting behaviour.
+        but supported by std::printf (see 7.21.6.1 in ISO 9899:2011).
+        As this implementation depends on the C++11 library, it
+        appears hard to find a reasonable workaround for this
+        diverting behaviour.
 
    Alternatives:
 
@@ -86,13 +86,13 @@
       extending the iostreams library in C++ Report where he
       proposed a setformat. Example from his paper:
 
-	 cout << "(" << setformat("%8.2f") << x << "," 
-	           << setformat("8.2f") << y << ")" << endl;
+         cout << "(" << setformat("%8.2f") << x << "," 
+                   << setformat("8.2f") << y << ")" << endl;
 
       Note that he used one setformat per placeholder as
       C++ at that time did not support variadic templates.
       This paper is available at
-	 https://horstmann.com/cpp/iostreams.html
+         https://horstmann.com/cpp/iostreams.html
 
     - The Boost Format library has created an approach
       that does not depend on variadic templates. The
@@ -177,10 +177,10 @@ template<typename CharT, typename Traits = std::char_traits<CharT>>
 class counting_ostreambuf : public std::basic_streambuf<CharT, Traits> {
    public:
       counting_ostreambuf(std::basic_streambuf<CharT, Traits>& sbuf) :
-	 sbuf(sbuf) {
+         sbuf(sbuf) {
       }
       std::streamsize get_count() const {
-	 return nbytes;
+         return nbytes;
       }
    protected:
       using Base = std::basic_streambuf<CharT, Traits>;
@@ -189,23 +189,23 @@ class counting_ostreambuf : public std::basic_streambuf<CharT, Traits> {
       using traits_type = typename Base::traits_type;
 
       virtual std::streamsize xsputn(const char_type* s,
-	    std::streamsize count) {
-	 std::streamsize result = sbuf.sputn(s, count);
-	 if (result > 0) nbytes += result;
-	 return result;
+            std::streamsize count) {
+         std::streamsize result = sbuf.sputn(s, count);
+         if (result > 0) nbytes += result;
+         return result;
       }
       virtual int_type overflow(int_type ch) {
-	 /* modeled after
-	    https://stackoverflow.com/questions/10921761/extending-c-ostream */
-	 if (ch == traits_type::eof()) {
-	    return traits_type::eof();
-	 } else {
-	    char_type c = traits_type::to_char_type(ch);
-	    return xsputn(&c, 1) == 1? ch: traits_type::eof();
-	 }
+         /* modeled after
+            https://stackoverflow.com/questions/10921761/extending-c-ostream */
+         if (ch == traits_type::eof()) {
+            return traits_type::eof();
+         } else {
+            char_type c = traits_type::to_char_type(ch);
+            return xsputn(&c, 1) == 1? ch: traits_type::eof();
+         }
       }
       virtual int sync() {
-	 return sbuf.pubsync();
+         return sbuf.pubsync();
       }
    private:
       std::basic_streambuf<CharT, Traits>& sbuf;
@@ -217,12 +217,12 @@ class counting_ostream : public std::basic_ostream<CharT, Traits> {
    public:
       using Base = std::basic_ostream<CharT, Traits>;
       counting_ostream(std::basic_ostream<CharT, Traits>& out) :
-	    Base(&sbuf), sbuf(*(out.rdbuf())) {
-	 /* inherit locale from our base stream */
-	 this->imbue(out.getloc());
+            Base(&sbuf), sbuf(*(out.rdbuf())) {
+         /* inherit locale from our base stream */
+         this->imbue(out.getloc());
       }
       std::streamsize get_count() const {
-	 return sbuf.get_count();
+         return sbuf.get_count();
       }
    private:
       counting_ostreambuf<CharT, Traits> sbuf;
@@ -232,7 +232,7 @@ template<typename CharT, typename Traits = std::char_traits<CharT>>
 class uppercase_ostreambuf : public std::basic_streambuf<CharT, Traits> {
    public:
       uppercase_ostreambuf(std::basic_streambuf<CharT, Traits>& sbuf) :
-	 sbuf(sbuf) {
+         sbuf(sbuf) {
       }
    protected:
       using Base = std::basic_streambuf<CharT, Traits>;
@@ -241,29 +241,29 @@ class uppercase_ostreambuf : public std::basic_streambuf<CharT, Traits> {
       using traits_type = typename Base::traits_type;
 
       virtual std::streamsize xsputn(const char_type* s,
-	    std::streamsize count) {
-	 for (std::streamsize i = 0; i < count; ++i) {
-	    char_type ch = s[i];
-	    if (std::islower(ch, this->getloc())) {
-	       ch = std::toupper(ch, this->getloc());
-	    }
-	    if (sbuf.sputc(ch) == traits_type::eof()) {
-	       return i;
-	    }
-	 }
-	 return count;
+            std::streamsize count) {
+         for (std::streamsize i = 0; i < count; ++i) {
+            char_type ch = s[i];
+            if (std::islower(ch, this->getloc())) {
+               ch = std::toupper(ch, this->getloc());
+            }
+            if (sbuf.sputc(ch) == traits_type::eof()) {
+               return i;
+            }
+         }
+         return count;
       }
 
       virtual int_type overflow(int_type ch) {
-	 if (ch == traits_type::eof()) {
-	    return traits_type::eof();
-	 } else {
-	    char_type c = traits_type::to_char_type(ch);
-	    return xsputn(&c, 1) == 1? ch: traits_type::eof();
-	 }
+         if (ch == traits_type::eof()) {
+            return traits_type::eof();
+         } else {
+            char_type c = traits_type::to_char_type(ch);
+            return xsputn(&c, 1) == 1? ch: traits_type::eof();
+         }
       }
       virtual int sync() {
-	 return sbuf.pubsync();
+         return sbuf.pubsync();
       }
    private:
       std::basic_streambuf<CharT, Traits>& sbuf;
@@ -274,10 +274,10 @@ class uppercase_ostream : public std::basic_ostream<CharT, Traits> {
    public:
       using Base = std::basic_ostream<CharT, Traits>;
       uppercase_ostream(std::basic_ostream<CharT, Traits>& out) :
-	    Base(&sbuf), sbuf(*(out.rdbuf())) {
-	 this->copyfmt(out);
-	 /* inherit locale from our base stream */
-	 this->imbue(out.getloc());
+            Base(&sbuf), sbuf(*(out.rdbuf())) {
+         this->copyfmt(out);
+         /* inherit locale from our base stream */
+         this->imbue(out.getloc());
       }
    private:
       uppercase_ostreambuf<CharT, Traits> sbuf;
@@ -464,37 +464,37 @@ parse_format_segment(const CharT* format, integer arg_index) {
       const CharT* begin = format;
       integer index;
       if (parse_integer(format, index) && *format == '$') {
-	 /* accept argument index */
-	 result.value_index = index - 1;
-	 ch = *++format;
+         /* accept argument index */
+         result.value_index = index - 1;
+         ch = *++format;
       } else {
-	 /* reset parsing */
-	 format = begin; ch = *format;
+         /* reset parsing */
+         format = begin; ch = *format;
       }
    }
 
    /* process conversion flags */
    while (ch == '\'' || ch == '-' || ch == '0' || ch == '+' ||
-	 ch == ' ' || ch == '#') {
+         ch == ' ' || ch == '#') {
       switch (ch) {
-	 case '\'':
-	    result.flags |= grouping_flag;
-	    break;
-	 case '-':
-	    result.flags |= minus_flag;
-	    result.fmtflags |= std::ios_base::left;
-	    break;
-	 case '0': result.flags |= zero_fill; break;
-	 case '+':
-	    result.flags |= plus_flag;
-	    result.fmtflags |= std::ios_base::showpos;
-	    break;
-	 case ' ': result.flags |= space_flag; break;
-	 case '#':
-	    result.flags |= special_flag;
-	    result.fmtflags |= (std::ios_base::showbase |
-	       std::ios_base::showpoint);
-	    break;
+         case '\'':
+            result.flags |= grouping_flag;
+            break;
+         case '-':
+            result.flags |= minus_flag;
+            result.fmtflags |= std::ios_base::left;
+            break;
+         case '0': result.flags |= zero_fill; break;
+         case '+':
+            result.flags |= plus_flag;
+            result.fmtflags |= std::ios_base::showpos;
+            break;
+         case ' ': result.flags |= space_flag; break;
+         case '#':
+            result.flags |= special_flag;
+            result.fmtflags |= (std::ios_base::showbase |
+               std::ios_base::showpoint);
+            break;
       }
       ch = *++format;
    }
@@ -505,7 +505,7 @@ parse_format_segment(const CharT* format, integer arg_index) {
    }
    if ((result.flags & plus_flag) && (result.flags & space_flag)) {
       /* if the ' ' and '+' flags both appear,
-	 the <space> flag shall be ignored */
+         the <space> flag shall be ignored */
       result.flags &= ~space_flag;
    }
    /* minimum field width */
@@ -513,12 +513,12 @@ parse_format_segment(const CharT* format, integer arg_index) {
    if (ch == '*') {
       result.flags |= dyn_width; ch = *++format;
       if (ch >= '1' && ch <= '9') {
-	 integer index;
-	 if (!parse_integer(format, index) || *format != '$') return result;
-	 ch = *++format;
-	 result.width_index = index - 1;
+         integer index;
+         if (!parse_integer(format, index) || *format != '$') return result;
+         ch = *++format;
+         result.width_index = index - 1;
       } else {
-	 result.width_index = arg_index + result.nof_args;
+         result.width_index = arg_index + result.nof_args;
       }
       result.nof_args++;
    } else {
@@ -532,116 +532,116 @@ parse_format_segment(const CharT* format, integer arg_index) {
       ch = *++format;
       std::streamsize precision = 0;
       if (ch == '*') {
-	 result.flags |= dyn_precision; ch = *++format;
-	 if (ch >= '1' && ch <= '9') {
-	    integer index;
-	    if (!parse_integer(format, index) || *format != '$') return result;
-	    ch = *++format;
-	    result.precision_index = index - 1;
-	 } else {
-	    result.precision_index = arg_index + result.nof_args;
-	 }
-	 result.nof_args++;
+         result.flags |= dyn_precision; ch = *++format;
+         if (ch >= '1' && ch <= '9') {
+            integer index;
+            if (!parse_integer(format, index) || *format != '$') return result;
+            ch = *++format;
+            result.precision_index = index - 1;
+         } else {
+            result.precision_index = arg_index + result.nof_args;
+         }
+         result.nof_args++;
       } else {
-	 if (ch >= '0' && ch <= '9') {
-	    if (!parse_integer(format, precision)) return result;
-	    ch = *format;
-	 }
-	 result.precision = precision;
+         if (ch >= '0' && ch <= '9') {
+            if (!parse_integer(format, precision)) return result;
+            ch = *format;
+         }
+         result.precision = precision;
       }
       if (result.flags & zero_fill) {
-	 /* if a precision is specified, the 0 flag is ignored */
-	 result.flags &= ~zero_fill;
+         /* if a precision is specified, the 0 flag is ignored */
+         result.flags &= ~zero_fill;
       }
    }
    /* skip size specification */
    while (ch == 'l' || ch == 'L' || ch == 'h' ||
-	 ch == 'j' || ch == 'z' || ch == 't') {
+         ch == 'j' || ch == 'z' || ch == 't') {
       ch = *++format;
    }
    /* conversion operation */
    result.conversion = ch;
    switch (ch) {
       case 'u':
-	 result.flags |= is_unsigned;
-	 FMT_PRINTF_FALLTHROUGH
+         result.flags |= is_unsigned;
+         FMT_PRINTF_FALLTHROUGH
       case 'd':
       case 'i':
-	 result.flags |= is_integer;
-	 result.base = 10;
-	 break;
+         result.flags |= is_integer;
+         result.base = 10;
+         break;
       case 'o':
-	 result.flags |= is_integer;
-	 result.base = 8;
-	 break;
+         result.flags |= is_integer;
+         result.base = 8;
+         break;
       case 'x':
-	 result.flags |= is_integer;
-	 result.base = 16;
-	 break;
+         result.flags |= is_integer;
+         result.base = 16;
+         break;
       case 'X':
-	 result.fmtflags |= std::ios_base::uppercase;
-	 result.flags |= is_integer;
-	 result.base = 16;
-	 break;
+         result.fmtflags |= std::ios_base::uppercase;
+         result.flags |= is_integer;
+         result.base = 16;
+         break;
       case 'f':
-	 result.fmtflags |= std::ios_base::fixed;
-	 result.base = 10;
-	 break;
+         result.fmtflags |= std::ios_base::fixed;
+         result.base = 10;
+         break;
       case 'F':
-	 result.fmtflags |= (std::ios_base::fixed | std::ios_base::uppercase);
-	 result.flags |= toupper;
-	 result.base = 10;
-	 break;
+         result.fmtflags |= (std::ios_base::fixed | std::ios_base::uppercase);
+         result.flags |= toupper;
+         result.base = 10;
+         break;
       case 'e':
-	 result.fmtflags |= std::ios_base::scientific;
-	 result.base = 10;
-	 break;
+         result.fmtflags |= std::ios_base::scientific;
+         result.base = 10;
+         break;
       case 'E':
-	 result.fmtflags |=
-	    std::ios_base::scientific | std::ios_base::uppercase;
-	 result.flags |= toupper;
-	 result.base = 10;
-	 break;
+         result.fmtflags |=
+            std::ios_base::scientific | std::ios_base::uppercase;
+         result.flags |= toupper;
+         result.base = 10;
+         break;
       case 'g':
-	 /* default behaviour */
-	 result.base = 10;
-	 break;
+         /* default behaviour */
+         result.base = 10;
+         break;
       case 'G':
-	 result.fmtflags |= std::ios_base::uppercase;
-	 result.flags |= toupper;
-	 result.base = 10;
-	 break;
+         result.fmtflags |= std::ios_base::uppercase;
+         result.flags |= toupper;
+         result.base = 10;
+         break;
       case 'a':
-	 result.fmtflags |= std::ios_base::scientific | std::ios_base::fixed;
-	 result.base = 16;
-	 break;
+         result.fmtflags |= std::ios_base::scientific | std::ios_base::fixed;
+         result.base = 16;
+         break;
       case 'A':
-	 result.fmtflags |= std::ios_base::scientific |
-	    std::ios_base::fixed | std::ios_base::uppercase;
-	 result.flags |= toupper;
-	 result.base = 16;
-	 break;
+         result.fmtflags |= std::ios_base::scientific |
+            std::ios_base::fixed | std::ios_base::uppercase;
+         result.flags |= toupper;
+         result.base = 16;
+         break;
       case 'p':
-	 result.base = 16;
-	 result.flags |= is_pointer;
-	 break;
+         result.base = 16;
+         result.flags |= is_pointer;
+         break;
       case 'C':
-	 /* POSIX extension, equivalent to 'lc' */
+         /* POSIX extension, equivalent to 'lc' */
       case 'c':
-	 result.flags |= is_charval;
-	 break;
+         result.flags |= is_charval;
+         break;
       case 'S':
-	 /* POSIX extension, equivalent to 'ls' */
+         /* POSIX extension, equivalent to 'ls' */
       case 's':
-	 /* when boolean values are printed with %s, we get
-	    more readable results; idea taken from N3506 */
-	 result.fmtflags |= std::ios_base::boolalpha;
-	 break;
+         /* when boolean values are printed with %s, we get
+            more readable results; idea taken from N3506 */
+         result.fmtflags |= std::ios_base::boolalpha;
+         break;
       case 'n':
-	 /* nothing to be done here */
-	 break;
+         /* nothing to be done here */
+         break;
       default:
-	 return result;
+         return result;
    }
    if ((result.flags & grouping_flag) && (result.base != 10)) {
       /* grouping is just supported for %i, %d, %u, %f, %F,
@@ -720,7 +720,7 @@ struct get_value_f {
 template<typename Tuple>
 inline integer get_value(const Tuple& tuple, integer index) {
    if (index >= 0 &&
-	 index < static_cast<integer>(std::tuple_size<Tuple>::value)) {
+         index < static_cast<integer>(std::tuple_size<Tuple>::value)) {
       return apply(tuple, index, get_value_f());
    } else {
       return -1;
@@ -746,7 +746,7 @@ template<typename Tuple>
 inline integer set_value(const Tuple& tuple, integer index,
       std::streamsize offset) {
    if (index >= 0 &&
-	 index < static_cast<integer>(std::tuple_size<Tuple>::value)) {
+         index < static_cast<integer>(std::tuple_size<Tuple>::value)) {
       return apply(tuple, index, set_value_f(offset));
    } else {
       return -1;
@@ -757,11 +757,11 @@ inline integer set_value(const Tuple& tuple, integer index,
 template<typename CharT, typename Traits, typename Value>
 inline typename std::enable_if<
       !std::is_integral<
-	 typename std::remove_reference<Value>::type>::value &&
+         typename std::remove_reference<Value>::type>::value &&
       !std::is_floating_point<
-	 typename std::remove_reference<Value>::type>::value &&
+         typename std::remove_reference<Value>::type>::value &&
       !std::is_pointer<
-	 typename std::remove_reference<Value>::type>::value, bool>::type
+         typename std::remove_reference<Value>::type>::value, bool>::type
 print_value(std::basic_ostream<CharT, Traits>& out,
       const format_segment<CharT>&, Value&& value) {
    out << value;
@@ -772,7 +772,7 @@ print_value(std::basic_ostream<CharT, Traits>& out,
 template<typename CharT, typename Traits, typename Value>
 inline typename std::enable_if<
       std::is_floating_point<
-	 typename std::remove_reference<Value>::type>::value,
+         typename std::remove_reference<Value>::type>::value,
       bool>::type
 print_value(std::basic_ostream<CharT, Traits>& out,
       const format_segment<CharT>& fseg, Value&& value) {
@@ -783,12 +783,12 @@ print_value(std::basic_ostream<CharT, Traits>& out,
    if ((fseg.flags & space_flag) && !std::signbit(value)) {
       if (!out.put(' ')) return false;
       if (fseg.width > 0) {
-	 out.width(fseg.width-1);
+         out.width(fseg.width-1);
       }
    }
    if (fseg.flags & toupper) {
       /* the default output operators fail to
-	 use uppercase characters in some cases */
+         use uppercase characters in some cases */
       impl::uppercase_ostream<CharT, Traits> fpout(out);
       fpout << value;
    } else {
@@ -804,7 +804,7 @@ inline integer count_digits(Value value, integer base) {
    } else {
       integer digits = 0;
       while (value != 0) {
-	 value /= base; ++digits;
+         value /= base; ++digits;
       }
       return digits;
    }
@@ -882,54 +882,54 @@ print_value(std::basic_ostream<CharT, Traits>& out,
       print_char_value(out, fseg, value);
    } else if (fseg.flags & is_integer) {
       if (fseg.flags & zero_fill) {
-	 out << std::internal << std::setfill(out.widen('0'));
+         out << std::internal << std::setfill(out.widen('0'));
       } else if (fseg.flags & precision) {
-	 integer digits = count_digits(value, fseg.base);
-	 integer signwidth = is_negative(value) ||
-	    (fseg.flags & (plus_flag | space_flag));
-	 integer extra = signwidth;
-	 if (value != 0 && (fseg.flags & special_flag) && fseg.base == 16) {
-	    extra += 2; /* '0x' */
-	 }
-	 if (fseg.flags & grouping_flag) {
-	    extra += digits / 3;
-	 }
-	 if (fseg.precision > digits) {
-	    /* padding with 0s required */
-	    if (fseg.width > fseg.precision + extra) {
-	       /* manual filling is required */
-	       if ((out.flags() & std::ios_base::adjustfield) ==
-		     std::ios_base::left) {
-		  /* padding has to be postponed */
-		  padding = fseg.width - fseg.precision - extra;
-	       } else {
-		  for (int i = 0; i < fseg.width - fseg.precision - extra;
-			++i) {
-		     out.put(out.widen(' '));
-		  }
-	       }
-	    }
-	    out << std::internal << std::setfill(out.widen('0')) <<
-	       std::setw(fseg.precision + extra);
-	 }
+         integer digits = count_digits(value, fseg.base);
+         integer signwidth = is_negative(value) ||
+            (fseg.flags & (plus_flag | space_flag));
+         integer extra = signwidth;
+         if (value != 0 && (fseg.flags & special_flag) && fseg.base == 16) {
+            extra += 2; /* '0x' */
+         }
+         if (fseg.flags & grouping_flag) {
+            extra += digits / 3;
+         }
+         if (fseg.precision > digits) {
+            /* padding with 0s required */
+            if (fseg.width > fseg.precision + extra) {
+               /* manual filling is required */
+               if ((out.flags() & std::ios_base::adjustfield) ==
+                     std::ios_base::left) {
+                  /* padding has to be postponed */
+                  padding = fseg.width - fseg.precision - extra;
+               } else {
+                  for (int i = 0; i < fseg.width - fseg.precision - extra;
+                        ++i) {
+                     out.put(out.widen(' '));
+                  }
+               }
+            }
+            out << std::internal << std::setfill(out.widen('0')) <<
+               std::setw(fseg.precision + extra);
+         }
       }
       if ((fseg.flags & space_flag) && !is_negative(value)) {
-	 if (!out.put(' ')) return false;
-	 auto width = out.width(0);
-	 if (width > 0) {
-	    out.width(width-1);
-	 }
+         if (!out.put(' ')) return false;
+         auto width = out.width(0);
+         if (width > 0) {
+            out.width(width-1);
+         }
       }
       /* convert character types to a corresponding integer type */
       using integer = decltype(value + 0);
       if (!(out << static_cast<integer>(value))) return false;
       /* print padding now when it is left adjusted */
       for (int i = 0; i < padding; ++i) {
-	 out.put(out.widen(' '));
+         out.put(out.widen(' '));
       }
    } else {
       /* neither %c, %d, %o, %x etc. has been given as expected,
-	 we proceed with default behaviour */
+         we proceed with default behaviour */
       out << value;
    }
    return !!out;
@@ -959,33 +959,33 @@ inline bool print_value(std::basic_ostream<CharT, Traits>& out,
       print_value(out, fseg, reinterpret_cast<std::intptr_t>(value));
    } else {
       if (fseg.flags & precision) {
-	 integer precision = fseg.precision;
-	 for (integer i = 0; i < precision; ++i) {
-	    if (!value[i]) {
-	       precision = i; break;
-	    }
-	 }
-	 integer padding = 0;
-	 if (fseg.width > precision) {
-	    padding = fseg.width - precision;
-	 }
-	 bool left = (out.flags() & std::ios_base::adjustfield) ==
-		  std::ios_base::left;
-	 if (!left) {
-	    for (integer i = 0; i < padding; ++i) {
-	       out.put(out.widen(' '));
-	    }
-	 }
-	 if (precision > 0) {
-	    out.write(value, precision);
-	 }
-	 if (left) {
-	    for (integer i = 0; i < padding; ++i) {
-	       out.put(out.widen(' '));
-	    }
-	 }
+         integer precision = fseg.precision;
+         for (integer i = 0; i < precision; ++i) {
+            if (!value[i]) {
+               precision = i; break;
+            }
+         }
+         integer padding = 0;
+         if (fseg.width > precision) {
+            padding = fseg.width - precision;
+         }
+         bool left = (out.flags() & std::ios_base::adjustfield) ==
+                  std::ios_base::left;
+         if (!left) {
+            for (integer i = 0; i < padding; ++i) {
+               out.put(out.widen(' '));
+            }
+         }
+         if (precision > 0) {
+            out.write(value, precision);
+         }
+         if (left) {
+            for (integer i = 0; i < padding; ++i) {
+               out.put(out.widen(' '));
+            }
+         }
       } else {
-	 out << value;
+         out << value;
       }
    }
    return !!out;
@@ -1033,32 +1033,32 @@ print_value(std::basic_ostream<CharT, Traits>& out,
       integer padding = 0;
       integer len = 0;
       bool left = (out.flags() & std::ios_base::adjustfield) ==
-	       std::ios_base::left;
+               std::ios_base::left;
       if (fseg.flags & precision) {
-	 len = fseg.precision;
-	 for (integer i = 0; i < len; ++i) {
-	    if (!value[i]) {
-	       len = i; break;
-	    }
-	 }
+         len = fseg.precision;
+         for (integer i = 0; i < len; ++i) {
+            if (!value[i]) {
+               len = i; break;
+            }
+         }
       } else {
-	 while (value[len]) ++len;
+         while (value[len]) ++len;
       }
       if (fseg.width > len) {
-	 padding = fseg.width - len;
+         padding = fseg.width - len;
       }
       if (!left) {
-	 for (integer i = 0; i < padding; ++i) {
-	    out.put(out.widen(' '));
-	 }
+         for (integer i = 0; i < padding; ++i) {
+            out.put(out.widen(' '));
+         }
       }
       for (integer i = 0; i < len; ++i) {
-	 out.put(out.widen(value[i]));
+         out.put(out.widen(value[i]));
       }
       if (left) {
-	 for (integer i = 0; i < padding; ++i) {
-	    out.put(out.widen(' '));
-	 }
+         for (integer i = 0; i < padding; ++i) {
+            out.put(out.widen(' '));
+         }
       }
    }
    return !!out;
@@ -1084,29 +1084,29 @@ print_value(std::basic_ostream<CharT, Traits>& out,
    } else {
       integer len = 0;
       if (fseg.flags & precision) {
-	 len = fseg.precision;
-	 for (integer i = 0; i < len; ++i) {
-	    if (!value[i]) {
-	       len = i; break;
-	    }
-	 }
+         len = fseg.precision;
+         for (integer i = 0; i < len; ++i) {
+            if (!value[i]) {
+               len = i; break;
+            }
+         }
       } else {
-	 while (value[len]) ++len;
+         while (value[len]) ++len;
       }
       auto& f = std::use_facet<std::codecvt<Value, CharT, std::mbstate_t>>(
-	 out.getloc());
+         out.getloc());
       std::mbstate_t state{};
       std::basic_string<CharT> converted(len * f.max_length(), 0);
       const Value* from_next;
       CharT* to_next;
       auto result = f.out(state,
-	 /* from */ value, value + len, from_next,
-	 /* to */ &converted[0], &converted[converted.size()], to_next);
+         /* from */ value, value + len, from_next,
+         /* to */ &converted[0], &converted[converted.size()], to_next);
       if (result == std::codecvt_base::ok) {
-	 converted.resize(to_next - &converted[0]);
-	 out << converted;
+         converted.resize(to_next - &converted[0]);
+         out << converted;
       } else {
-	 out.setstate(std::ios_base::failbit);
+         out.setstate(std::ios_base::failbit);
       }
    }
    return !!out;
@@ -1145,8 +1145,8 @@ print_value(std::basic_ostream<CharT, Traits>& out,
 template<typename CharT, typename Traits>
 struct process_value_f {
    process_value_f(std::basic_ostream<CharT, Traits>& out,
-	 const format_segment<CharT>& fseg) :
-	 out(out), fseg(fseg) {
+         const format_segment<CharT>& fseg) :
+         out(out), fseg(fseg) {
    }
    template<typename Value>
    bool operator()(Value&& value) {
@@ -1161,7 +1161,7 @@ inline bool process_value(const Tuple& tuple, integer index,
       std::basic_ostream<CharT, Traits>& out,
       const format_segment<CharT>& fseg) {
    if (index >= 0 &&
-	 index < static_cast<integer>(std::tuple_size<Tuple>::value)) {
+         index < static_cast<integer>(std::tuple_size<Tuple>::value)) {
       return apply(tuple, index, process_value_f<CharT, Traits>(out, fseg));
    } else {
       return false;
@@ -1212,42 +1212,42 @@ inline int printf(std::basic_ostream<CharT, Traits>& out,
       if (!fseg.valid) return -1;
       nof_args += fseg.nof_args;
       if (fseg.endp > fseg.beginp) {
-	 cout.write(fseg.beginp, fseg.endp - fseg.beginp);
-	 if (!cout) return -1;
+         cout.write(fseg.beginp, fseg.endp - fseg.beginp);
+         if (!cout) return -1;
       }
       if (fseg.value_index >= 0) {
-	 if (fseg.conversion == 'n') {
-	    if (impl::set_value(tuple, fseg.value_index,
-		  cout.get_count()) < 0) {
-	       return -1;
-	    }
-	 } else {
-	    if (fseg.width_index >= 0) {
-	       fseg.width = impl::get_value(tuple, fseg.width_index);
-	    }
-	    if (fseg.precision_index >= 0) {
-	       fseg.precision = impl::get_value(tuple, fseg.precision_index);
-	    }
-	    impl::format_saver<CharT, Traits> fsaver(cout);
-	    cout.setf(fseg.fmtflags);
-	    cout.setf(fseg.base == 8? std::ios_base::oct  :
-		      fseg.base == 10? std::ios_base::dec :
-		      fseg.base == 16? std::ios_base::hex :
-		      std::ios_base::fmtflags(0), std::ios_base::basefield);
-	    if (fseg.width > 0) {
-	       cout.width(fseg.width);
-	    }
-	    if ((fseg.flags & impl::precision) && fseg.precision >= 0) {
-	       cout.precision(fseg.precision);
-	    }
-	    if (fseg.flags & impl::grouping_flag) {
-	       cout.imbue(std::locale(cout.getloc(),
-		  new impl::thousands_grouping()));
-	    }
-	    if (!process_value(tuple, fseg.value_index, cout, fseg)) {
-	       return -1;
-	    }
-	 }
+         if (fseg.conversion == 'n') {
+            if (impl::set_value(tuple, fseg.value_index,
+                  cout.get_count()) < 0) {
+               return -1;
+            }
+         } else {
+            if (fseg.width_index >= 0) {
+               fseg.width = impl::get_value(tuple, fseg.width_index);
+            }
+            if (fseg.precision_index >= 0) {
+               fseg.precision = impl::get_value(tuple, fseg.precision_index);
+            }
+            impl::format_saver<CharT, Traits> fsaver(cout);
+            cout.setf(fseg.fmtflags);
+            cout.setf(fseg.base == 8? std::ios_base::oct  :
+                      fseg.base == 10? std::ios_base::dec :
+                      fseg.base == 16? std::ios_base::hex :
+                      std::ios_base::fmtflags(0), std::ios_base::basefield);
+            if (fseg.width > 0) {
+               cout.width(fseg.width);
+            }
+            if ((fseg.flags & impl::precision) && fseg.precision >= 0) {
+               cout.precision(fseg.precision);
+            }
+            if (fseg.flags & impl::grouping_flag) {
+               cout.imbue(std::locale(cout.getloc(),
+                  new impl::thousands_grouping()));
+            }
+            if (!process_value(tuple, fseg.value_index, cout, fseg)) {
+               return -1;
+            }
+         }
       }
       format = fseg.nextp;
    }

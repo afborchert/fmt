@@ -73,15 +73,15 @@ int sprint(wchar_t* buffer, std::size_t size,
       const wchar_t* format, Values&&... values) {
    if (buffer && size > 0) {
       return std::swprintf(buffer, size, format,
-	 std::forward<Values>(values)...);
+         std::forward<Values>(values)...);
    } else {
       /* unfortunately the behaviour of swprintf differs
-	 from that of snprintf, i.e. if size == 0, just -1
-	 is returned instead of computing the required buffer
-	 size */
+         from that of snprintf, i.e. if size == 0, just -1
+         is returned instead of computing the required buffer
+         size */
       wchar_t buf[1024]; // should be sufficient for our tests
       return std::swprintf(buf, sizeof buf/sizeof buf[0], format,
-	 std::forward<Values>(values)...);
+         std::forward<Values>(values)...);
    }
 }
 
@@ -243,9 +243,9 @@ bool check_printf(const CharT* expected, const CharT* format,
       sprint(buf, count + 1, format, std::forward<Values>(values)...);
       ok = compare(expected, buf) == 0;
       if (!ok) {
-	 fmt::printf(
-	    "std::printf deviates from standard for \"%s\": \"%.*s\"\n",
-	    format, count, buf);
+         fmt::printf(
+            "std::printf deviates from standard for \"%s\": \"%.*s\"\n",
+            format, count, buf);
       }
       delete[] buf;
    } else if (!ok) {
@@ -280,21 +280,21 @@ bool general_testcase(bool implementation_defined,
       std::fill_n(buf, string_len + 8, 42);
       count1 = fmt::snprintf(buf, string_len, format, std::forward<Values>(values)...);
       if (count1 > 0) {
-	 int i = 0;
-	 while (i < string_len) {
-	    if (!buf[i]) break;
-	    ++i;
-	 }
-	 if (i < string_len) {
-	    for (i = string_len; i < string_len + 8; ++i) {
-	       if (buf[i] != 42) {
-		  buffer_overrun(format, string_len, i);
-		  print_values(1, values...);
-		  return false;
-	       }
-	    }
-	    os << buf;
-	 }
+         int i = 0;
+         while (i < string_len) {
+            if (!buf[i]) break;
+            ++i;
+         }
+         if (i < string_len) {
+            for (i = string_len; i < string_len + 8; ++i) {
+               if (buf[i] != 42) {
+                  buffer_overrun(format, string_len, i);
+                  print_values(1, values...);
+                  return false;
+               }
+            }
+            os << buf;
+         }
       }
       delete[] buf;
    } else {
@@ -308,16 +308,16 @@ bool general_testcase(bool implementation_defined,
    int err2 = errno;
    if (count1 < 0 || count2 < 0) {
       if (count1 != count2) {
-	 count_mismatch(implementation_defined, format, count1, count2);
-	 print_values(1, values...);
-	 if (implementation_defined) ++warnings;
-	 return false;
+         count_mismatch(implementation_defined, format, count1, count2);
+         print_values(1, values...);
+         if (implementation_defined) ++warnings;
+         return false;
       }
       if (err1 != err2) {
-	 errno_mismatch(implementation_defined, format, err1, err2);
-	 print_values(1, values...);
-	 if (implementation_defined) ++warnings;
-	 return false;
+         errno_mismatch(implementation_defined, format, err1, err2);
+         print_values(1, values...);
+         if (implementation_defined) ++warnings;
+         return false;
       }
       ++successful;
       return true;
@@ -336,7 +336,7 @@ bool general_testcase(bool implementation_defined,
    bool ok = compare(buf, osstr.c_str()) == 0;
    if (!ok) {
       diff_analysis(implementation_defined, format, count1, count2,
-	 osstr.c_str(), buf);
+         osstr.c_str(), buf);
       if (implementation_defined) ++warnings;
    }
    delete[] buf;
@@ -414,8 +414,8 @@ bool special_testcase(int expected_count,
    } else {
       print("special test for \"%s\" fails:\n", format);
       if (count != expected_count) {
-	 print("   fmt returns:           %d\n", count);
-	 print("   expected return value: %d\n", expected_count);
+         print("   fmt returns:           %d\n", count);
+         print("   expected return value: %d\n", expected_count);
       }
       print("   fmt delivers:          \"%s\"\n", fmt_str);
       print("   expected:              \"%s\"\n", expected_str);
@@ -784,17 +784,17 @@ void run_tests() {
       testcase("%e", val);
       testcase("%g", val);
       if (uppercase_inf_works || std::isfinite(val)) {
-	 testcase("%F", val);
-	 testcase("%E", val);
-	 testcase("%G", val);
+         testcase("%F", val);
+         testcase("%E", val);
+         testcase("%G", val);
       }
       if (hexfloat_works) {
-	 testcase("%a", val);
-	 // testcase("%.0a", val);
-	 // testcase("%.2a", val);
-	 if (uppercase_inf_works || std::isfinite(val)) {
-	    testcase("%A", val);
-	 }
+         testcase("%a", val);
+         // testcase("%.0a", val);
+         // testcase("%.2a", val);
+         if (uppercase_inf_works || std::isfinite(val)) {
+            testcase("%A", val);
+         }
       }
       testcase("%10.2f", val);
       testcase("%10.2e", val);
@@ -903,15 +903,15 @@ void run_tests() {
       testcase("%le", val);
       testcase("%lg", val);
       if (uppercase_inf_works || std::isfinite(val)) {
-	 testcase("%lF", val);
-	 testcase("%lE", val);
-	 testcase("%lG", val);
+         testcase("%lF", val);
+         testcase("%lE", val);
+         testcase("%lG", val);
       }
       if (hexfloat_works) {
-	 testcase("%la", val);
-	 if (uppercase_inf_works || std::isfinite(val)) {
-	    testcase("%lA", val);
-	 }
+         testcase("%la", val);
+         if (uppercase_inf_works || std::isfinite(val)) {
+            testcase("%lA", val);
+         }
       }
       testcase("%10.2lf", val);
       testcase("%10.2le", val);
@@ -972,15 +972,15 @@ void run_tests() {
       testcase("%Le", val);
       testcase("%Lg", val);
       if (uppercase_inf_works || std::isfinite(val)) {
-	 testcase("%LF", val);
-	 testcase("%LE", val);
-	 testcase("%LG", val);
+         testcase("%LF", val);
+         testcase("%LE", val);
+         testcase("%LG", val);
       }
       if (hexfloat_works) {
-	 testcase("%La", val);
-	 if (uppercase_inf_works || std::isfinite(val)) {
-	    testcase("%LA", val);
-	 }
+         testcase("%La", val);
+         if (uppercase_inf_works || std::isfinite(val)) {
+            testcase("%LA", val);
+         }
       }
       testcase("%10.2Lf", val);
       testcase("%10.2Le", val);
@@ -1057,7 +1057,7 @@ void run_tests() {
       testcase("%*lg", width, std::numeric_limits<double>::max());
       testcase("%*lg %d", width, std::numeric_limits<double>::max(), width);
       testcase("%*lg %d %d", width, std::numeric_limits<double>::max(),
-	 width, width);
+         width, width);
       testcase("%0*d", width, 1234);
       testcase("%*d", width, 1234);
       testcase("%*d", width, 1234);
@@ -1069,16 +1069,16 @@ void run_tests() {
       testcase("%.*d %d %d", width, 1234, width, width);
       testcase("%.*lg %d", width, std::numeric_limits<double>::max(), width);
       testcase("%.*lg %d %d", width, std::numeric_limits<double>::max(),
-	 width, width);
+         width, width);
       for (int precision = 0; precision < 15; ++precision) {
-	 testcase("%*.*s", width, precision, "Hello world");
-	 testcase("%*.*lg", width, precision,
-	    std::numeric_limits<double>::max());
-	 testcase("%*.*lg %d %d", width, precision,
-	    std::numeric_limits<double>::max(),
-	    width, precision);
-	 testcase("%*.*d", width, precision, 1234);
-	 testcase("%0*.*d", width, precision, 1234);
+         testcase("%*.*s", width, precision, "Hello world");
+         testcase("%*.*lg", width, precision,
+            std::numeric_limits<double>::max());
+         testcase("%*.*lg %d %d", width, precision,
+            std::numeric_limits<double>::max(),
+            width, precision);
+         testcase("%*.*d", width, precision, 1234);
+         testcase("%0*.*d", width, precision, 1234);
       }
    }
    for (int precision = 0; precision < 15; ++precision) {
@@ -1116,14 +1116,14 @@ void run_tests() {
    bool locale_ok = std::setlocale(LC_ALL, locale_string);
    if (locale_ok) {
       /* this is likely to fail for g++ implementations
-	 that are not based on glibc as they just
-	 support "C" */
+         that are not based on glibc as they just
+         support "C" */
       try {
-	 auto locale = std::locale(locale_string);
-	 std::locale::global(locale);
-	 std::cout.imbue(locale); std::wcout.imbue(locale);
+         auto locale = std::locale(locale_string);
+         std::locale::global(locale);
+         std::cout.imbue(locale); std::wcout.imbue(locale);
       } catch (...) {
-	 locale_ok = false;
+         locale_ok = false;
       }
    }
    if (locale_ok) {
@@ -1133,57 +1133,57 @@ void run_tests() {
       testcase(L"Hello world");
 
       /* note that we skip numeric_limits in case of wchar_t
-	 as we could get EILSEQ error codes (happens when Xcode is used) */
+         as we could get EILSEQ error codes (happens when Xcode is used) */
       wchar_t wc_values[] = {L'a', L'A', L'.', L'/', L' ',
-	 L'\u00fc', /* LATIN SMALL LETTER U WITH DIAERESIS */
-	 L'\u017f', /* LATIN SMALL LETTER LONG S */
+         L'\u00fc', /* LATIN SMALL LETTER U WITH DIAERESIS */
+         L'\u017f', /* LATIN SMALL LETTER LONG S */
       };
       for (auto val: wc_values) {
-	 testcase(L"%lc", val);
-	 testcase(L"%C", val);
-	 testcase(L"%lc%lc", val, val);
-	 testcase(L"%lc %lc", val, val);
-	 testcase(L"%8lc", val);
-	 testcase(L"%-8lc", val);
+         testcase(L"%lc", val);
+         testcase(L"%C", val);
+         testcase(L"%lc%lc", val, val);
+         testcase(L"%lc %lc", val, val);
+         testcase(L"%8lc", val);
+         testcase(L"%-8lc", val);
       }
       testcase(L"%lc", 65);
 
       const wchar_t* ws_values[] = {L"Hi", L"Hallo", L"", L"Hello world",
-	 L"\u00fc", /* LATIN SMALL LETTER U WITH DIAERESIS */
-	 L"\u017f", /* LATIN SMALL LETTER LONG S */
+         L"\u00fc", /* LATIN SMALL LETTER U WITH DIAERESIS */
+         L"\u017f", /* LATIN SMALL LETTER LONG S */
       };
       for (auto val: ws_values) {
-	 testcase(L"%ls", val);
-	 testcase(L"%S", val);
-	 testcase(L"%16ls", val);
-	 testcase(L"%-16ls", val);
+         testcase(L"%ls", val);
+         testcase(L"%S", val);
+         testcase(L"%16ls", val);
+         testcase(L"%-16ls", val);
       }
 
       /* printing wide characters to a narrow stream */
       for (auto val: wc_values) {
-	 testcase("%lc", val);
-	 testcase("%4lc", val);
+         testcase("%lc", val);
+         testcase("%4lc", val);
       }
       for (auto val: ws_values) {
-	 testcase("%ls", val);
-	 testcase("%4ls", val);
-	 testcase("%10ls", val);
-	 testcase("%10.2ls", val);
+         testcase("%ls", val);
+         testcase("%4ls", val);
+         testcase("%10ls", val);
+         testcase("%10.2ls", val);
       }
 
       /* printing narrow characters to a wide stream;
-	 we test just ASCII characters here;
-	 others might fail with EILSEQ */
+         we test just ASCII characters here;
+         others might fail with EILSEQ */
       char ac_values[] = {'a', 'A', '.', '/', ' ', '\t', '\n', '\0'};
       for (auto val: ac_values) {
-	 testcase(L"%c", val);
-	 testcase(L"%4c", val);
+         testcase(L"%c", val);
+         testcase(L"%4c", val);
       }
       for (auto val: s_values) {
-	 testcase(L"%s", val);
-	 testcase(L"%4s", val);
-	 testcase(L"%10s", val);
-	 testcase(L"%10.2s", val);
+         testcase(L"%s", val);
+         testcase(L"%4s", val);
+         testcase(L"%10s", val);
+         testcase(L"%10.2s", val);
       }
       #endif
 
@@ -1195,35 +1195,35 @@ void run_tests() {
       if (empty_bug) ++broken;
 
       for (auto val: i_values) {
-	 testcase("%d", val);
-	 testcase("%'d", val);
-	 for (int width = 0; width < 20; ++width) {
-	    testcase("%'*d", width, val);
-	    testcase("%d %'*d %d", val, width, val, val);
-	    if (!empty_bug) {
-	       for (int precision = 0; precision < 15; ++precision) {
-		  testcase("%'*.*d", width, precision, val);
-	       }
-	    }
-	 }
+         testcase("%d", val);
+         testcase("%'d", val);
+         for (int width = 0; width < 20; ++width) {
+            testcase("%'*d", width, val);
+            testcase("%d %'*d %d", val, width, val, val);
+            if (!empty_bug) {
+               for (int precision = 0; precision < 15; ++precision) {
+                  testcase("%'*.*d", width, precision, val);
+               }
+            }
+         }
       }
 
       for (auto val: d_values) {
-	 testcase("%f", val);
-	 testcase("%g", val);
-	 testcase("%e", val);
-	 testcase("%'f", val);
-	 testcase("%'g", val);
-	 testcase("%'e", val);
-	 for (int width = 0; width < 20; ++width) {
-	    testcase("%'*f", width, val);
-	    testcase("%'*g", width, val);
-	    testcase("%'*e", width, val);
-	    testcase("%f %'*f %f", val, width, val, val);
-	    for (int precision = 0; precision < 15; ++precision) {
-	       testcase("%'*.*f", width, precision, val);
-	    }
-	 }
+         testcase("%f", val);
+         testcase("%g", val);
+         testcase("%e", val);
+         testcase("%'f", val);
+         testcase("%'g", val);
+         testcase("%'e", val);
+         for (int width = 0; width < 20; ++width) {
+            testcase("%'*f", width, val);
+            testcase("%'*g", width, val);
+            testcase("%'*e", width, val);
+            testcase("%f %'*f %f", val, width, val, val);
+            for (int precision = 0; precision < 15; ++precision) {
+               testcase("%'*.*f", width, precision, val);
+            }
+         }
       }
    }
 
@@ -1259,7 +1259,7 @@ void run_tests() {
    fmt::printf("%u/%u tests succeeded\n", successful, testcases);
    if (warnings > 0) {
       fmt::printf("%d implementation-dependent tests "
-	 "delivered different results\n", warnings);
+         "delivered different results\n", warnings);
    }
    if (successful + warnings < testcases) {
       fmt::printf("%d tests failed\n", testcases - successful - warnings);
@@ -1269,11 +1269,11 @@ void run_tests() {
    }
    if (broken > 0) {
       fmt::printf("%d test series skipped where std::printf deviates from "
-	 "standard\n", broken);
+         "standard\n", broken);
    }
    if (cpp_broken > 0) {
       fmt::printf("%d test series skipped where the C++ library does not "
-	 "conform to the C++11 standard\n", cpp_broken);
+         "conform to the C++11 standard\n", cpp_broken);
    }
    if (!locale_ok) {
       fmt::printf("locale dependent tests skipped\n");
