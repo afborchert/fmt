@@ -1,5 +1,5 @@
 /* 
-   Copyright (c) 2015, 2016, 2020, 2023, 2024 Andreas F. Borchert
+   Copyright (c) 2015, 2016, 2020, 2023, 2024, 2026 Andreas F. Borchert
    All rights reserved.
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -122,6 +122,7 @@ ISO C++ 2011 standard.
 #else
 
 #include <cassert>
+#include <cctype>
 #include <cerrno>
 #include <climits>
 #include <cmath>
@@ -134,11 +135,22 @@ ISO C++ 2011 standard.
 #include <iostream>
 #include <limits>
 #include <locale>
+#include <memory>
 #include <sstream>
 #include <streambuf>
 #include <string>
 #include <tuple>
 #include <type_traits>
+
+/* support extended floating point types
+   that are supported by std::to_chars but for
+   which we do not have output operators
+   (like optional std::float16_t or std::float128_t 
+   in C++23); this code requires C++17 */
+#if __cplusplus >= 201703L
+   #include <charconv>
+   #include <system_error> /* just needed for std::to_chars */
+#endif
 
 /* avoid warnings for fallthroughs */
 #if __cplusplus >= 201703L
@@ -169,6 +181,53 @@ template<> struct is_char<char8_t> : public std::true_type {};
 template<> struct is_char<wchar_t> : public std::true_type {};
 template<> struct is_char<char16_t> : public std::true_type {};
 template<> struct is_char<char32_t> : public std::true_type {};
+
+/* type trait that allows to recognize types for which
+   we have an output operator */
+template<typename CharT, typename Traits, typename T>
+class has_output_operator {
+   private:
+      template<typename U>
+      static auto test(int) -> decltype(
+         std::declval<std::basic_ostream<CharT, Traits>&>() <<
+            std::declval<U>(),
+            std::true_type()
+      );
+      template<typename>
+      static std::false_type test(...);
+   public:
+      static constexpr bool value =
+         std::is_same<decltype(test<T>(0)), std::true_type>::value;
+};
+
+#if __cplusplus >= 201703L
+template<typename T>
+constexpr std::size_t fp_buffer_size_for_base10(int precision) {
+   using limits = std::numeric_limits<std::decay_t<T>>;
+   auto len = limits::max_exponent10;
+   if (precision > 0) {
+      len += precision;
+   } else {
+      len += limits::max_digits10;
+   }
+   /* extras including sign, decimal point, 'e' or 'E', sign of exponent */
+   len += 5;
+   return len;
+}
+
+template<typename T>
+constexpr int exponent2(T x) {
+   if (x == 0 || !std::isfinite(x)) return 0;
+   int e{}; std::frexp(x, &e);
+   return e;
+}
+template<typename T>
+constexpr int exponent10(T x) {
+   int e2 = exponent2(x);
+   if (e2 == 0) return 0;
+   return static_cast<int>(std::floor((e2 - 1) * std::log10(2)));
+}
+#endif
 
 /* printf is expected to return the number of bytes written;
    the following extensions direct all output to the given
@@ -299,6 +358,12 @@ struct suppress_grouping : std::numpunct<char> {
       return "\0";
    }
 };
+
+/* retrieve thousands's grouping character */
+template<typename CharT, typename Traits>
+CharT thousands_sep_for_stream(std::basic_ostream<CharT, Traits>& out) {
+   return std::use_facet<std::numpunct<CharT>>(out.getloc()).thousands_sep();
+}
 
 /* RAII object that saves the current formatting state of the stream
    and makes sure that the state is restored on destruction */
@@ -530,7 +595,7 @@ parse_format_segment(const CharT* format, integer arg_index) {
    if (ch == '.') {
       result.flags |= precision;
       ch = *++format;
-      std::streamsize precision = 0;
+      std::streamsize prec = 0;
       if (ch == '*') {
          result.flags |= dyn_precision; ch = *++format;
          if (ch >= '1' && ch <= '9') {
@@ -544,10 +609,10 @@ parse_format_segment(const CharT* format, integer arg_index) {
          result.nof_args++;
       } else {
          if (ch >= '0' && ch <= '9') {
-            if (!parse_integer(format, precision)) return result;
+            if (!parse_integer(format, prec)) return result;
             ch = *format;
          }
-         result.precision = precision;
+         result.precision = prec;
       }
       if (result.flags & zero_fill) {
          /* if a precision is specified, the 0 flag is ignored */
@@ -768,10 +833,14 @@ print_value(std::basic_ostream<CharT, Traits>& out,
    return !!out;
 }
 
-/* formatted output of floating point values */
+/* formatted output of floating point values
+   for which an output operator is provided
+*/
 template<typename CharT, typename Traits, typename Value>
 inline typename std::enable_if<
       std::is_floating_point<
+         typename std::remove_reference<Value>::type>::value &&
+      has_output_operator<CharT, Traits,
          typename std::remove_reference<Value>::type>::value,
       bool>::type
 print_value(std::basic_ostream<CharT, Traits>& out,
@@ -796,6 +865,221 @@ print_value(std::basic_ostream<CharT, Traits>& out,
    }
    return !!out;
 }
+
+/* formatted output of floating point values
+   for which no output operator is provided;
+   in this case we fall back to std::to_chars;
+   this variant supports floating point types
+   like std::float16_t or std::float128_t which
+   appeared in C++23 but are not supported by <iostream>;
+   note that std::to_chars is supported since C++17
+*/
+#if __cplusplus >= 201703L
+template<typename CharT, typename Traits, typename Value>
+inline typename std::enable_if<
+      std::is_floating_point<
+         typename std::remove_reference<Value>::type>::value &&
+      !has_output_operator<CharT, Traits,
+         typename std::remove_reference<Value>::type>::value,
+      bool>::type
+print_value(std::basic_ostream<CharT, Traits>& out,
+      const format_segment<CharT>& fseg, Value&& value) {
+   auto prec = fseg.precision;
+   bool specify_precision = (fseg.flags & precision);
+   if (!specify_precision) {
+      prec = 6;
+   }
+   std::chars_format fmt = std::chars_format::general;
+   bool add_hex = false; char hex_char = 0;
+   if (fseg.base == 16) {
+      fmt = std::chars_format::hex;
+      if (std::isfinite(value)) {
+         add_hex = true;
+         if (fseg.flags & toupper) {
+            hex_char = 'X';
+         } else {
+            hex_char = 'x';
+         }
+      }
+   } else if (fseg.fmtflags & std::ios_base::fixed) {
+      fmt = std::chars_format::fixed;
+      specify_precision = true;
+   } else if (fseg.fmtflags & std::ios_base::scientific) {
+      fmt = std::chars_format::scientific;
+      specify_precision = true;
+   }
+   if ((fseg.flags & special_flag) && fmt == std::chars_format::general) {
+      if (!std::isnan(value)) {
+         /* std::chars_format::general does not print trailing zeroes
+            in accordance to "%g" format. However, "%#g" is supposed
+            to honor precision as "%e" or "%f" do. We fix this by
+            selecting fixed or scientific format and adapting the
+            precision according to § 7.23.6.2 ISO 9899:2024, p. 334. */
+         int exp = exponent10(value);
+         if (prec > exp && exp >= -4) {
+            if (prec > exp + 1) {
+               prec = prec - (exp + 1);
+            } else {
+               prec = 0;
+            }
+            fmt = std::chars_format::fixed;
+         } else {
+            fmt = std::chars_format::scientific;
+            if (prec > 0) --prec;
+         }
+         specify_precision = true;
+      }
+   } else if (fmt == std::chars_format::general) {
+      /* unfortunately the default of std::to_chars does not
+         match that of "%g" */
+      specify_precision = true;
+   }
+
+   /* now feed it to std::to_chars */
+   auto len = fp_buffer_size_for_base10<Value>(prec);
+   auto buf = std::make_unique<char[]>(len);
+   std::to_chars_result res;
+   if (specify_precision) {
+      res = std::to_chars(buf.get(), buf.get() + len,
+         std::forward<Value>(value), fmt, prec);
+   } else {
+      res = std::to_chars(buf.get(), buf.get() + len,
+         std::forward<Value>(value), fmt);
+   }
+   if (res.ec != std::errc{}) {
+      /* this is expected to happen when len is too small */
+      return false;
+   }
+   char* start = buf.get(); /* will skip leading '-' in case of 0-padding */
+   auto nbytes = res.ptr - start;
+   if (nbytes == 0) return false;
+
+   /* prepare handling of leading '0x' and additional sign */
+   auto width = fseg.width;
+   if (add_hex) {
+      if (width > 2) {
+         width -= 2;
+      } else {
+         width = 0;
+      }
+   }
+   bool add_sign = !std::signbit(value) &&
+      (fseg.flags & (space_flag | plus_flag));
+   char sign_ch = 0;
+   if (add_sign) {
+      if (fseg.flags & space_flag) {
+         sign_ch = ' ';
+      } else {
+         sign_ch = '+';
+      }
+      if (width > 0) --width;
+   } else if (*start == '-' && ((fseg.flags & zero_fill) || add_hex)) {
+      ++start; --nbytes;
+      sign_ch = '-';
+      add_sign = true;
+      if (width > 0) --width;
+   }
+
+   /* prepare possible grouping which is not supported
+      by std::to_chars */
+   bool add_grouping = false; CharT grouping_ch{};
+   std::streamsize dec_period_index{};
+   std::streamsize first_digit_i{};
+   if (fseg.flags & grouping_flag) {
+      /* we need to add manually the thousands' grouping characters */
+      grouping_ch = thousands_sep_for_stream(out);
+      std::streamsize i = 0;
+      for (; i < nbytes; ++i) {
+         if (std::isdigit(start[i])) {
+            first_digit_i = i;
+            break;
+         }
+      }
+      if (i < nbytes) {
+         for (;i < nbytes; ++i) {
+            if (!std::isdigit(start[i]) && start[i] != '-') {
+               dec_period_index = i; add_grouping = true;
+               break;
+            }
+         }
+         if (!add_grouping) {
+            dec_period_index = nbytes;
+            add_grouping = true;
+         }
+         auto digits = dec_period_index - first_digit_i;
+         /* adjust width */
+         if (digits > 3) {
+            auto extra_space = (digits - 1) / 3;
+            if (width > extra_space) {
+               width -= extra_space;
+            } else {
+               width = 0;
+            }
+         } else {
+            add_grouping = false;
+         }
+      }
+   }
+
+   /* as we have now computed the width of the floating point
+      number, we are able to emit leading white space,
+      optional '0x', optional sign, and optional 0-padding
+      in front of the text generated by std::to_chars */
+   if (width > nbytes && !(fseg.flags & minus_flag)) {
+      auto fill_ch = static_cast<CharT>(' ');
+      if ((fseg.flags & zero_fill) && std::isfinite(value)) {
+         if (add_sign) {
+            if (!out.put(sign_ch)) return false;
+            add_sign = false;
+         }
+         if (add_hex) {
+            if (!out.put('0') || !out.put(hex_char)) return false;
+            add_hex = false;
+         }
+         fill_ch = static_cast<CharT>('0');
+      }
+      for (std::streamsize i = 0; i < width - nbytes; ++i) {
+         if (!out.put(fill_ch)) return false;
+      }
+   }
+   if (add_sign) {
+      if (!out.put(sign_ch)) return false;
+   }
+   if (add_hex) {
+      if (!out.put('0') || !out.put(hex_char)) return false;
+   }
+
+   /* print the text generated by std::to_chars,
+      we have to take care of possible grouping and
+      a possible upper case flag */
+   if (fseg.flags & toupper) {
+      impl::uppercase_ostream<CharT, Traits> fpout(out);
+      for (std::streamsize i = 0; i < nbytes; ++i) {
+         if (add_grouping && i > first_digit_i && i+3 < dec_period_index &&
+               (dec_period_index - i) % 3 == 0) {
+            if (!fpout.put(grouping_ch)) return false;
+         }
+         if (!fpout.put(static_cast<CharT>(start[i]))) return false;
+      }
+   } else {
+      for (std::streamsize i = 0; i < nbytes; ++i) {
+         if (add_grouping && i > first_digit_i && i+3 <= dec_period_index &&
+               (dec_period_index - i) % 3 == 0) {
+            if (!out.put(grouping_ch)) return false;
+         }
+         if (!out.put(static_cast<CharT>(start[i]))) return false;
+      }
+   }
+
+   /* trailing white space, if any */
+   if (width > nbytes && (fseg.flags & minus_flag)) {
+      for (std::streamsize i = 0; i < width - nbytes; ++i) {
+         if (!out.put(' ')) return false;
+      }
+   }
+   return !!out;
+}
+#endif
 
 template<typename Value>
 inline integer count_digits(Value value, integer base) {
@@ -959,15 +1243,15 @@ inline bool print_value(std::basic_ostream<CharT, Traits>& out,
       print_value(out, fseg, reinterpret_cast<std::intptr_t>(value));
    } else {
       if (fseg.flags & precision) {
-         integer precision = fseg.precision;
-         for (integer i = 0; i < precision; ++i) {
+         integer prec = fseg.precision;
+         for (integer i = 0; i < prec; ++i) {
             if (!value[i]) {
-               precision = i; break;
+               prec = i; break;
             }
          }
          integer padding = 0;
-         if (fseg.width > precision) {
-            padding = fseg.width - precision;
+         if (fseg.width > prec) {
+            padding = fseg.width - prec;
          }
          bool left = (out.flags() & std::ios_base::adjustfield) ==
                   std::ios_base::left;
@@ -976,8 +1260,8 @@ inline bool print_value(std::basic_ostream<CharT, Traits>& out,
                out.put(out.widen(' '));
             }
          }
-         if (precision > 0) {
-            out.write(value, precision);
+         if (prec > 0) {
+            out.write(value, prec);
          }
          if (left) {
             for (integer i = 0; i < padding; ++i) {

@@ -1,5 +1,5 @@
 /* 
-   Copyright (c) 2015, 2016, 2020, 2023, 2024 Andreas F. Borchert
+   Copyright (c) 2015, 2016, 2020, 2023, 2024, 2026 Andreas F. Borchert
    All rights reserved.
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -35,13 +35,28 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <cwchar>
 #include <limits>
 #include <sstream>
 #include <string>
+#include <typeinfo>
 #include <type_traits>
 #include "printf.hpp"
+
+#if __cplusplus >= 202302L
+   #include <charconv>
+   #include <stdfloat>
+   #include <system_error>
+#endif
+
+#if __cplusplus >= 201703L || defined(__GNUC__)
+   #if  __has_include(<cxxabi.h>)
+      #include <cxxabi.h>
+      #define CXXABI_SUPPORTED
+   #endif
+#endif
 
 #ifdef __INTEL_COMPILER
 /* disable warnings of the Intel compiler for out of range values
@@ -203,33 +218,77 @@ void offset_mismatch(const wchar_t* format, int off1, int off2) {
       off1, off2);
 }
 
+template<typename T>
+std::string get_typename() {
+   auto tname = typeid(T).name();
+   #ifdef CXXABI_SUPPORTED
+      int status;
+      auto demangled = abi::__cxa_demangle(tname, nullptr, 0, &status);
+      if (demangled) {
+	 std::string name = demangled;
+	 std::free(demangled); // was allocated using malloc
+	 return name;
+      } else {
+	 return tname;
+      }
+   #else
+      return tname;
+   #endif
+}
+
+/* defend against nullptr values as this causes std::cout to fail */
+template<typename CharT>
+   typename std::enable_if<
+      fmt::impl::is_char<typename std::remove_reference<CharT>::type>::value,
+   void>::type
+print_value(const CharT* value) {
+   if (value) {
+      std::cout << value;
+   } else {
+      std::cout << "[nullptr]";
+   }
+}
+
+void print_value(std::nullptr_t) {
+   std::cout << "[nullptr]";
+}
+
+#if __cplusplus >= 201703L
+template<typename Value>
+inline typename std::enable_if<
+      std::is_floating_point<
+         typename std::remove_reference<Value>::type>::value &&
+      !fmt::impl::has_output_operator<char, std::char_traits<char>,
+         typename std::remove_reference<Value>::type>::value,
+      void>::type
+print_value(Value value) {
+   char buf[8192];
+   auto res = std::to_chars(buf, buf + sizeof buf, value);
+   if (res.ec != std::errc()) {
+      std::cout << std::make_error_code(res.ec).message();
+   } else {
+      std::cout.write(buf, res.ptr - buf);
+   }
+}
+#endif
+
+template<typename Value>
+typename std::enable_if<
+   fmt::impl::has_output_operator<char, std::char_traits<char>,
+      typename std::remove_reference<Value>::type>::value,
+   void>::type
+print_value(Value value) {
+   std::cout << value;
+}
+
 void print_values(int) {
 }
 
-#if __cplusplus < 201703L
-/* an output operator for nullptr_t is provided since C++17
-   but neither for C++11 nor C++14;
-   however clang++ defines this operator also for C++11 and C++14
-   beginning from at least clang version 12 */
-#if defined(__clang__) && defined(_LIBCPP_VERSION)
-   #if _LIBCPP_VERSION < 12000
-      #define DEFINE_OUTPUT_OPERATOR_FOR_NULLPTR
-   #endif
-#else
-   #define DEFINE_OUTPUT_OPERATOR_FOR_NULLPTR
-#endif
-
-#ifdef DEFINE_OUTPUT_OPERATOR_FOR_NULLPTR
-std::ostream& operator<<(std::ostream& out, std::nullptr_t) {
-   out << "nullptr";
-   return out;
-}
-#endif
-#endif
-
 template<typename Value, typename... Values>
 void print_values(int index, Value value, Values&&... values) {
-   std::cout << "   argument #" << index << ": '" << value << "'" << std::endl;
+   std::cout << "   argument #" << index << ": ";
+   print_value(value);
+   std::cout << " (of type " << get_typename<Value>() << ")" << std::endl;
    print_values(index + 1, std::forward<Values>(values)...);
 }
 
@@ -278,7 +337,8 @@ bool general_testcase(bool implementation_defined,
    if (to_string) {
       CharT* buf = new CharT[string_len + 8];
       std::fill_n(buf, string_len + 8, 42);
-      count1 = fmt::snprintf(buf, string_len, format, std::forward<Values>(values)...);
+      count1 = fmt::snprintf(buf, string_len, format,
+         std::forward<Values>(values)...);
       if (count1 > 0) {
          int i = 0;
          while (i < string_len) {
@@ -422,6 +482,20 @@ bool special_testcase(int expected_count,
       print_values(1, values...);
       return false;
    }
+}
+
+/* testcase for fixed-width floating-point types of C++23
+   that are not supported by std::printf */
+template<typename T>
+void testcases_for_extended_fp_types() {
+   special_testcase(6, "0x0p+0", "%a", T{0});
+   special_testcase(1, "0", "%g", T{0});
+   special_testcase(8, "0.000000", "%f", T{0});
+   special_testcase(12, "0.000000e+00", "%e", T{0});
+   special_testcase(6, "0x1p-1", "%a", static_cast<T>(0.5));
+   special_testcase(3, "0.5", "%g", static_cast<T>(0.5));
+   special_testcase(8, "0.500000", "%f", static_cast<T>(0.5));
+   special_testcase(12, "5.000000e-01", "%e", static_cast<T>(0.5));
 }
 
 /* for tests of the support for output operators */
@@ -1255,6 +1329,26 @@ void run_tests() {
    for (int len = 0; len < static_cast<int>(sizeof(s)) + 1; ++len) {
       testcase_for_snprintf(len, "%s", s);
    }
+
+   #if __cplusplus >= 202302L
+      /* test cases for fixed-width floating-point types of C++23,
+         if supported */
+      #ifdef __STDCPP_FLOAT16_T__
+         testcases_for_extended_fp_types<std::float16_t>();
+      #endif
+      #ifdef __STDCPP_FLOAT32_T__
+         testcases_for_extended_fp_types<std::float32_t>();
+      #endif
+      #ifdef __STDCPP_FLOAT64_T__
+         testcases_for_extended_fp_types<std::float64_t>();
+      #endif
+      #ifdef __STDCPP_FLOAT128_T__
+         testcases_for_extended_fp_types<std::float128_t>();
+      #endif
+      #ifdef __STDCPP_BFLOAT16_T__
+         testcases_for_extended_fp_types<std::bfloat16_t>();
+      #endif
+   #endif
 
    fmt::printf("%u/%u tests succeeded\n", successful, testcases);
    if (warnings > 0) {

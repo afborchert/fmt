@@ -112,6 +112,11 @@ configures all `std::ios_base` formatting flags
 in these cases but leaves their interpretation to
 the matching output operator.
 
+C++23 introduces the optional fixed-width floating-point
+types std::float16_t, std::float32_t, std::float64_t,
+std::float128_t, and std::bfloat16_t. fmt::printf
+supports them, if defined.
+
 ## License
 
 This package is available under the terms of
